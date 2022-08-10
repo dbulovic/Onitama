@@ -4,85 +4,191 @@ import random
 import tkinter
 from tkinter import *
 from functools import partial
+from tkinter import messagebox
+
+import cards
 
 # turn
 sign = 1
 
-global old_board, board, bpwn, rpwn, empty, avb
+global old_board, board, bpwn, rpwn, empty, avb, red_cards, blue_cards, extra_card
+red_cards = ["tiger", "elephant"]
+blue_cards = ["monkey", "crab"]
+extra_card = "dragon"
 board = [[" " for x in range(5)] for y in range(5)]
 
-def field_button(i, j, l1, l2):
+def select_card(x, l1, l2, window):
+	global sign, red_cards, blue_cards
+
+	if (sign == 1 and (x == 2 or x == 3)) or (sign == -1 and (x == 0 or x == 1)):
+		if sign == 1: available_moves = cards.getCardMoves(blue_cards[x % 2])
+		else: available_moves = cards.getCardMoves(red_cards[x % 2])
+		for ni in range (5):
+			for nj in range (5):
+				fieldp = partial(field_button, ni, nj, l1, l2, available_moves, x, window)
+				buttons[ni][nj].config(command=fieldp)
+		set_pieces()	
+
+def field_button(i, j, l1, l2, moves, x, window):
 	global sign
 
 	# reset commands and images
 	for ni in range (5):
 		for nj in range (5):
-			fieldp = partial(field_button, ni, nj, l1, l2)
+			fieldp = partial(field_button, ni, nj, l1, l2, moves, x, window)
 			buttons[ni][nj].config(command=fieldp)
-			if board[ni][nj] == "BK" or board[ni][nj] == "BP": 
-				buttons[ni][nj].config(image=bpwn)
-			elif board[ni][nj] == "RK" or board[ni][nj] == "RP": 
-				buttons[ni][nj].config(image=rpwn)
-			else: buttons[ni][nj].config(image=empty)
+	set_pieces()
 
 	if sign == 1 and (board[i][j] == "BK" or board[i][j] == "BP"):
-		movep = partial(moveb, i, j, i-sign, j, l1, l2)	
-		buttons[i-sign][j].config(command=movep, image=avb)
+		for move in moves:
+			i_new = i+(sign*move[0])
+			j_new = j+(sign*move[1])
+			if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
+			if board[i_new][j_new] == "BK" or board[i_new][j_new] == "BP": continue
+			movep = partial(moveb, i, j, i_new, j_new, l1, l2, x, window)
+			buttons[i_new][j_new].config(command=movep, image=avb)
 
 	elif sign == -1 and (board[i][j] == "RK" or board[i][j] == "RP"):
-		movep = partial(mover, i, j, i-sign, j, l1, l2)	
-		buttons[i-sign][j].config(command=movep, image=avb)			
+		for move in moves:
+			i_new = i+(sign*move[0])
+			j_new = j+(sign*move[1])
+			if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
+			if board[i_new][j_new] == "RK" or board[i_new][j_new] == "RP": continue
+			movep = partial(mover, i, j, i_new, j_new, l1, l2, x, window)	
+			buttons[i_new][j_new].config(command=movep, image=avb)		
 
 
-def moveb(i, j, new_i, new_j, l1, l2):
-	global sign
-	fieldp = partial(field_button, new_i, new_j, l1, l2)
-	buttons[new_i][new_j].config(command=fieldp, image=bpwn)
-	board[new_i][new_j] = "BP"
-	buttons[i][j].config(image=empty)
+def moveb(i, j, new_i, new_j, l1, l2, x, window):
+	global sign, extra_card
+	board[new_i][new_j] = board[i][j]
 	board[i][j] = " "
 	l1.config(state=DISABLED)
 	l2.config(state=ACTIVE)
-	sign *= -1	
+	sign *= -1
+	for ni in range (5):
+		for nj in range (5):
+			buttons[ni][nj].config(command=False)
 
-def mover(i, j, new_i, new_j, l1, l2):
-	global sign
-	fieldp = partial(field_button, new_i, new_j, l1, l2)
-	buttons[new_i][new_j].config(command=fieldp, image=rpwn)
-	board[new_i][new_j] = "RP"
-	buttons[i][j].config(image=empty)
+	tmp = blue_cards[x % 2]
+	blue_cards[x % 2] = extra_card
+	extra_card = tmp
+	set_cards()
+	set_pieces()
+
+	if check_win() == 1:
+		window.destroy()
+		box = messagebox.showinfo("Winner", "Blue Player won the match")
+
+def mover(i, j, new_i, new_j, l1, l2, x, window):
+	global sign, extra_card
+	board[new_i][new_j] = board[i][j]
 	board[i][j] = " "
 	l1.config(state=ACTIVE)
 	l2.config(state=DISABLED)
 	sign *= -1
+	for ni in range (5):
+		for nj in range (5):
+			buttons[ni][nj].config(command=False)
+	
+	tmp = red_cards[x % 2]
+	red_cards[x % 2] = extra_card
+	extra_card = tmp
+	set_cards()
+	set_pieces()
+
+	if check_win() == 2:
+		window.destroy()
+		box = messagebox.showinfo("Winner", "Red Player won the match")
 
 
 # Create the GUI of game board
 def set_board(window, l1, l2):
-	global board, old_board, buttons, bpwn, rpwn, empty, avb
+	global board, buttons, bpwn, bkng, rpwn, rkng, empty, avb, rcard1, rcard2, bcard1, bcard2, ecard
+	global tiger, monkey, dragon, elephant, crab
 
 	# setting up the back-end board:
 	board[0] = ["RP", "RP", "RK", "RP", "RP"]
 	board[4] = ["BP", "BP", "BK", "BP", "BP"]
-
-	old_board = board
 	
 	bpwn = PhotoImage(file = r"imgs\bpawn.png")
 	rpwn = PhotoImage(file = r"imgs\rpawn.png")
+	bkng = PhotoImage(file = r"imgs\bking.png")
+	rkng = PhotoImage(file = r"imgs\rking.png")
 	empty = PhotoImage(file = r"imgs\empty.png")
 	avb = PhotoImage(file = r"imgs\available.png")
+	tiger = PhotoImage(file = r"imgs\tiger.png")
+	monkey = PhotoImage(file = r"imgs\monkey.png")
+	dragon = PhotoImage(file = r"imgs\dragon.png")
+	elephant = PhotoImage(file = r"imgs\elephant.png")
+	crab = PhotoImage(file = r"imgs\crab.png")
+
 	buttons = []
 	for i in range(5):
 		m = 5+i
 		buttons.append([])
 		for j in range(5):
 			n = j
-			field = partial(field_button, i, j, l1, l2)
-			buttons[i].append(Button(window, bd=5, command=field, image=empty, height=64, width=64))
+			#field = partial(field_button, i, j, l1, l2)
+			buttons[i].append(Button(window, bd=5, image=empty, height=64, width=64))
 			buttons[i][j].grid(row=m, column=n)
-			if(i == 0): buttons[i][j].config(image=rpwn, height=64, width=64)
-			if(i == 4): buttons[i][j].config(image=bpwn, height=64, width=64)
+
+	set_pieces()	
+
+	p_card = partial(select_card, 0, l1, l2, window)
+	rcard1 = Button(window, command=p_card, image=empty, height=128, width=128)
+	rcard1.grid(row=5, column=6, rowspan=2, columnspan=2)
+
+	p_card = partial(select_card, 1, l1, l2, window)
+	rcard2 = Button(window, command=p_card, image=empty, height=128, width=128)
+	rcard2.grid(row=5, column=8, rowspan=2, columnspan=2)
+
+	p_card = partial(select_card, 2, l1, l2, window)
+	bcard1 = Button(window, command=p_card, image=empty, height=128, width=128)
+	bcard1.grid(row=8, column=6, rowspan=2, columnspan=2)
+
+	p_card = partial(select_card, 3, l1, l2, window)
+	bcard2 = Button(window, command=p_card, image=empty, height=128, width=128)
+	bcard2.grid(row=8, column=8, rowspan=2, columnspan=2)
+
+	ecard = Button(window, image=empty, height=128, width=128)
+	ecard.grid(row=7, column=12, rowspan=2, columnspan=2)
+
+	set_cards()
+
 	window.mainloop()
+
+def set_cards():
+	exec("rcard1.config(image=%s)" % red_cards[0])
+	exec("rcard2.config(image=%s)" % red_cards[1])
+	exec("bcard1.config(image=%s)" % blue_cards[0])
+	exec("bcard2.config(image=%s)" % blue_cards[1])
+	exec("ecard.config(image=%s)" % extra_card)
+
+def set_pieces():
+	global board, buttons
+
+	for ni in range (5):
+		for nj in range (5):
+			if board[ni][nj] == "BP": 
+				buttons[ni][nj].config(image=bpwn)
+			elif board[ni][nj] == "RP": 
+				buttons[ni][nj].config(image=rpwn)
+			elif board[ni][nj] == "BK": 
+				buttons[ni][nj].config(image=bkng)
+			elif board[ni][nj] == "RK": 
+				buttons[ni][nj].config(image=rkng)
+			else: buttons[ni][nj].config(image=empty)
+
+def check_win():
+	global board
+
+	if board[0][2] == "BK": return 1
+	if not any("RK" in subl for subl in board): return 1
+
+	if board[4][2] == "RK": return 2
+	if not any("BK" in subl for subl in board): return 2
+
+	return 0
 
 # Initial setup
 def pvp(window):

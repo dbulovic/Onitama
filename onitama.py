@@ -13,6 +13,7 @@ sign = 1
 red_cards = [" ", " "]
 blue_cards = [" ", " "]
 all_cards = ["tiger", "elephant", "monkey", "crab", "dragon"]
+all_pieces = ["empty", "emptyb", "available", "temple", "templeb", "bking", "bkingb", "bpawn", "bpawnb", "rking", "rkingb", "rpawn", "rpawnb"]
 
 def select_card(x, l1, l2, window):
 	global sign, red_cards, blue_cards
@@ -44,21 +45,27 @@ def field_button(i, j, l1, l2, moves, x, window):
 			if sign == 1 and (board[i_new][j_new] == "BK" or board[i_new][j_new] == "BP"): continue
 			if sign == -1 and (board[i_new][j_new] == "RK" or board[i_new][j_new] == "RP"): continue
 			movep = partial(move_piece, i, j, i_new, j_new, l1, l2, x, window)
-			buttons[i_new][j_new].config(command=movep, image=avb)
+			buttons[i_new][j_new].config(command=movep, image=available)
 
 def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 	global sign, extra_card
+
+	# move the piece
 	board[new_i][new_j] = board[i][j]
 	board[i][j] = " "
+
+	# invert the turn buttons
 	if l1['state'] == DISABLED: l1.config(state=ACTIVE)
 	elif l1['state'] == ACTIVE: l1.config(state=DISABLED)
 	if l2['state'] == DISABLED: l2.config(state=ACTIVE)
 	elif l2['state'] == ACTIVE: l2.config(state=DISABLED)
 	
+	# disable field buttons
 	for ni in range (5):
 		for nj in range (5):
 			buttons[ni][nj].config(command=False)
 
+	# switch the used card with extra card
 	if sign == 1:
 		tmp = blue_cards[x % 2]
 		blue_cards[x % 2] = extra_card
@@ -72,40 +79,31 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 	set_pieces()
 	sign *= -1
 
+	# check win condition
 	win_r = check_win()
-	if win_r == 1:
-		box = messagebox.showinfo("Winner", "Blue Player won the match")
-		window.destroy()		
-		play()
-
-	if win_r == 2:
-		box = messagebox.showinfo("Winner", "Red Player won the match")
+	if win_r:
+		if win_r == 1: winner = "Blue"
+		else: winner = "Red"
+		box = messagebox.showinfo("Game Over", "%s Player won the match." % winner)
 		window.destroy()		
 		play()
 
 # Create the GUI of game board
 def set_board(window, l1, l2):
-	global board, buttons, bpwn, bkng, rpwn, rkng, empty, temple, avb, rcard1, rcard2, bcard1, bcard2, ecard
-	global tiger, monkey, dragon, elephant, crab
+	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard
 
 	# setting up the back-end board:
 	board = [[" " for x in range(5)] for y in range(5)]
 	board[0] = ["RP", "RP", "RK", "RP", "RP"]
 	board[4] = ["BP", "BP", "BK", "BP", "BP"]
 	
-	# setting up the images for the pieces and the cards
-	bpwn = PhotoImage(file = r"imgs\bpawn.png")
-	rpwn = PhotoImage(file = r"imgs\rpawn.png")
-	bkng = PhotoImage(file = r"imgs\bking.png")
-	rkng = PhotoImage(file = r"imgs\rking.png")
-	empty = PhotoImage(file = r"imgs\empty.png")
-	temple = PhotoImage(file = r"imgs\temple.png")
-	avb = PhotoImage(file = r"imgs\available.png")
-	tiger = PhotoImage(file = r"imgs\tiger.png")
-	monkey = PhotoImage(file = r"imgs\monkey.png")
-	dragon = PhotoImage(file = r"imgs\dragon.png")
-	elephant = PhotoImage(file = r"imgs\elephant.png")
-	crab = PhotoImage(file = r"imgs\crab.png")
+	# setting up the images for the pieces
+	for piece in all_pieces:
+		exec('global %s; %s = PhotoImage(file = r"imgs\%s.png")' % (piece, piece, piece))
+
+	# initialize images for cards
+	for card in all_cards:
+		exec('global %s; %s = PhotoImage(file = r"imgs\%s.png")' % (card, card, card))
 
 	buttons = []
 	for i in range(5):
@@ -173,17 +171,30 @@ def set_pieces():
 
 	for ni in range (5):
 		for nj in range (5):
-			if board[ni][nj] == "BP": 
-				buttons[ni][nj].config(image=bpwn)
-			elif board[ni][nj] == "RP": 
-				buttons[ni][nj].config(image=rpwn)
-			elif board[ni][nj] == "BK": 
-				buttons[ni][nj].config(image=bkng)
-			elif board[ni][nj] == "RK": 
-				buttons[ni][nj].config(image=rkng)
-			elif (ni == 0 and nj == 2) or (ni == 4 and nj == 2):
-				buttons[ni][nj].config(image=temple)
-			else: buttons[ni][nj].config(image=empty)
+			if (ni % 2 == 0) == (nj % 2 == 0): 
+				if board[ni][nj] == "BP": 
+					buttons[ni][nj].config(image=bpawnb)
+				elif board[ni][nj] == "RP": 
+					buttons[ni][nj].config(image=rpawnb)
+				elif board[ni][nj] == "BK": 
+					buttons[ni][nj].config(image=bkingb)
+				elif board[ni][nj] == "RK": 
+					buttons[ni][nj].config(image=rkingb)
+				elif (ni == 0 and nj == 2) or (ni == 4 and nj == 2):
+					buttons[ni][nj].config(image=templeb)
+				else:
+					buttons[ni][nj].config(image=emptyb)
+			else:
+				if board[ni][nj] == "BP": 
+					buttons[ni][nj].config(image=bpawn)
+				elif board[ni][nj] == "RP": 
+					buttons[ni][nj].config(image=rpawn)
+				elif board[ni][nj] == "BK": 
+					buttons[ni][nj].config(image=bking)
+				elif board[ni][nj] == "RK": 
+					buttons[ni][nj].config(image=rking)
+				else:
+					buttons[ni][nj].config(image=empty)
 	
 
 def check_win():

@@ -111,7 +111,6 @@ def set_board(window, l1, l2):
 		buttons.append([])
 		for j in range(5):
 			n = j
-			#field = partial(field_button, i, j, l1, l2)
 			buttons[i].append(Button(window, bd=5, image=empty, height=64, width=64))
 			buttons[i][j].grid(row=m, column=n)
 

@@ -7,8 +7,9 @@ from functools import partial
 from tkinter import messagebox
 
 import cards
+import onitama_bot
 
-global all_cards, board, red_cards, blue_cards, extra_card, sign
+global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot
 sign = 1
 red_cards = [" ", " "]
 blue_cards = [" ", " "]
@@ -48,7 +49,7 @@ def field_button(i, j, l1, l2, moves, x, window):
 			buttons[i_new][j_new].config(command=movep, image=available)
 
 def move_piece(i, j, new_i, new_j, l1, l2, x, window):
-	global sign, extra_card
+	global sign, extra_card, play_bot
 
 	# move the piece
 	board[new_i][new_j] = board[i][j]
@@ -87,10 +88,17 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 		box = messagebox.showinfo("Game Over", "%s Player won the match." % winner)
 		window.destroy()		
 		play()
+		return
+	
+	if play_bot and sign == -1:
+		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(board, red_cards)
+		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
 
 # Create the GUI of game board
 def set_board(window, l1, l2):
-	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard
+	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign
+
+	sign = 1
 
 	# setting up the back-end board:
 	board = [[" " for x in range(5)] for y in range(5)]
@@ -208,7 +216,9 @@ def check_win():
 	return 0
 
 # Initial setup
-def game_window(window):
+def game_window(window, bot):
+	global play_bot
+
 	window.destroy()
 	window = Tk()
 	window.title("Onitama")
@@ -219,6 +229,10 @@ def game_window(window):
 				width = 10, state = DISABLED)
 	
 	l2.grid(row = 2, column = 1)
+
+	if bot: play_bot = True
+	else: play_bot = False
+
 	set_board(window, l1, l2)
 
 # main function
@@ -226,7 +240,7 @@ def play():
 	menu = Tk()
 	menu.geometry("480x480")
 	menu.title("Onitama")
-	gwindow = partial(game_window, menu)
+	gwindow = partial(game_window, menu, False)
 	
 	head = Button(menu, text = "Onitama: Strategy Game",
 				activeforeground = 'red',
@@ -236,13 +250,19 @@ def play():
 	B1 = Button(menu, text = "Play", command = gwindow, activeforeground = 'red',
 				activebackground = "yellow", bg = "red", fg = "yellow",
 				width = 500, font = 'summer', bd = 5)
+
+	gwindow = partial(game_window, menu, True)
+	B2 = Button(menu, text = "Play Bot", command = gwindow, activeforeground = 'red',
+				activebackground = "yellow", bg = "red", fg = "yellow",
+				width = 500, font = 'summer', bd = 5)
 	
-	B2 = Button(menu, text = "Exit", command = menu.quit, activeforeground = 'red',
+	B3 = Button(menu, text = "Exit", command = menu.destroy, activeforeground = 'red',
 				activebackground = "yellow", bg = "red", fg = "yellow",
 				width = 500, font = 'summer', bd = 5)
 	head.pack(side = 'top')
 	B1.pack(side = 'top')
 	B2.pack(side = 'top')
+	B3.pack(side = 'top')
 	menu.mainloop()
 
 # Call main function

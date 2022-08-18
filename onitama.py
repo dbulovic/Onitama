@@ -10,6 +10,7 @@ import cards
 import onitama_bot
 
 global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot
+global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
 sign = 1
 red_cards = [" ", " "]
 blue_cards = [" ", " "]
@@ -107,11 +108,11 @@ def set_board(window, l1, l2):
 	
 	# setting up the images for the pieces
 	for piece in all_pieces:
-		exec('global %s; %s = PhotoImage(file = r"imgs\%s.png")' % (piece, piece, piece))
+		exec('global %s; %s = PhotoImage(file = r"imgs/%s.png")' % (piece, piece, piece))
 
 	# initialize images for cards
 	for card in all_cards:
-		exec('global %s; %s = PhotoImage(file = r"imgs\%s.png")' % (card, card, card))
+		exec('global %s; %s = PhotoImage(file = r"imgs/%s.png")' % (card, card, card))
 
 	buttons = []
 	for i in range(5):
@@ -224,11 +225,11 @@ def game_window(window, bot):
 	window.title("Onitama")
 	l1 = Button(window, activebackground = "blue", text = "Player 1 : Blue", width = 10, state=ACTIVE)
 	
-	l1.grid(row = 1, column = 1)
+	l1.grid(row = 1, column = 1, columnspan=2)
 	l2 = Button(window, activebackground = "red", text = "Player 2 : Red",
 				width = 10, state = DISABLED)
 	
-	l2.grid(row = 2, column = 1)
+	l2.grid(row = 2, column = 1, columnspan=2)
 
 	if bot: play_bot = True
 	else: play_bot = False

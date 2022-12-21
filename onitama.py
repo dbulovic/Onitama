@@ -1,7 +1,7 @@
 # Onitama game
 
 import random
-import tkinter
+from time import sleep
 from tkinter import *
 from functools import partial
 from tkinter import messagebox
@@ -52,6 +52,8 @@ def field_button(i, j, l1, l2, moves, x, window):
 def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 	global sign, extra_card, play_bot
 
+	printboard(board)
+
 	# move the piece
 	board[new_i][new_j] = board[i][j]
 	board[i][j] = " "
@@ -92,7 +94,7 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 		return
 	
 	if play_bot and sign == -1:
-		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(board, red_cards)
+		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, -1)
 		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
 
 # Create the GUI of game board
@@ -231,8 +233,7 @@ def game_window(window, bot):
 	
 	l2.grid(row = 2, column = 1, columnspan=2)
 
-	if bot: play_bot = True
-	else: play_bot = False
+	play_bot = bot
 
 	set_board(window, l1, l2)
 
@@ -245,8 +246,8 @@ def play():
 	
 	head = Button(menu, text = "Onitama: Strategy Game",
 				activeforeground = 'red',
-				activebackground = "yellow", bg = "red",
-				fg = "yellow", width = 500, font = 'summer', bd = 5)
+				activebackground = "yellow", bg = "yellow",
+				fg = "red", width = 500, font = 'summer', bd = 5)
 	
 	B1 = Button(menu, text = "Play", command = gwindow, activeforeground = 'red',
 				activebackground = "yellow", bg = "red", fg = "yellow",
@@ -265,6 +266,16 @@ def play():
 	B2.pack(side = 'top')
 	B3.pack(side = 'top')
 	menu.mainloop()
+	
+def printboard(board):
+	print("==========================")
+	for i in range(5):
+		print("|", end="")
+		for j in range(5):
+			if(board[i][j] == " "): print("   ", end=" |")
+			else: print(" " + board[i][j], end=" |")
+		print()
+		print("--------------------------")	
 
 # Call main function
 if __name__ == '__main__':

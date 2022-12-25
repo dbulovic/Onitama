@@ -27,14 +27,13 @@ def getRandomTurn(board, red_cards):
 				return r_piece[0], r_piece[1], i_new, j_new, red_cards.index(r_card)
 			
 def getTurn(board, blue_cards, red_cards, common_card, sign):
-	depth = 3
+	depth = 4
 	nboard = copy.deepcopy(board)
 	nblue_cards = blue_cards[:]
 	nred_cards = red_cards[:]
 	ncc = common_card
 	zeroMove = Move(0,0,0,0,0)
-	root = GameStateNode(nboard, nblue_cards, nred_cards, ncc, 0, zeroMove)
-	createTree(root, sign, depth)
+	root = GameStateNode(nboard, nblue_cards, nred_cards, ncc, 0, zeroMove, -1)
 	alpha_beta_pruning(root, depth, -1000, +1000, True)
 	
 	for child in root.children:
@@ -43,7 +42,7 @@ def getTurn(board, blue_cards, red_cards, common_card, sign):
 
 
 class GameStateNode:
-	def __init__(self, board, blue_cards, red_cards, common_card, value : int, move):
+	def __init__(self, board, blue_cards, red_cards, common_card, value : int, move, turn_sign: int):
 		self.children = []
 		self.board = board
 		self.blue_cards = blue_cards
@@ -51,6 +50,7 @@ class GameStateNode:
 		self.common_card = common_card
 		self.value = value
 		self.move = move
+		self.turn_sign = turn_sign 
 
 class Move:
 	def __init__(self, i, j, i_n, j_n, c):
@@ -60,8 +60,9 @@ class Move:
 		self.j_n = j_n
 		self.c = c
 
-def createTree(node : GameStateNode, sign : int, depth: int):
-	if sign == 1:
+def addChildrenToNode(node : GameStateNode):
+	if node.board[0][2] == "BK" or not any("RK" in subl for subl in node.board) or node.board[4][2] == "RK" or not any("BK" in subl for subl in node.board): return
+	if node.turn_sign == 1:		
 		for i in range(5):
 			for j in range(5):
 				if node.board[i][j] == "BP" or node.board[i][j] == "BK":
@@ -69,8 +70,8 @@ def createTree(node : GameStateNode, sign : int, depth: int):
 					for card in node.blue_cards:
 						moves = cards.getCardMoves(card)
 						for move in moves:
-							i_new = i + (sign*move[0])
-							j_new = j + (sign*move[1])
+							i_new = i + (node.turn_sign*move[0])
+							j_new = j + (node.turn_sign*move[1])
 							if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
 							elif node.board[i_new][j_new] == "BK" or node.board[i_new][j_new] == "BP": continue
 							else:
@@ -83,21 +84,19 @@ def createTree(node : GameStateNode, sign : int, depth: int):
 								new_blue_cards[index_of_card] = node.common_card
 								new_common_card = card
 								node_move = Move(i,j,i_new,j_new,index_of_card)
-								new_node = GameStateNode(new_board, new_blue_cards, new_red_cards, new_common_card, 0, node_move)
-								node.children.append(new_node)
-								if depth > 0 and new_board[0][2] != "BK" and any("RK" in subl for subl in new_board):
-									createTree(new_node, sign*(-1), depth-1)
-								
+								nn_sign = -node.turn_sign
+								new_node = GameStateNode(new_board, new_blue_cards, new_red_cards, new_common_card, 0, node_move, nn_sign)
+								node.children.append(new_node)								
 	
-	elif sign == -1:
+	elif node.turn_sign == -1:
 		for i in range(5):
 			for j in range(5):
 				if node.board[i][j] == "RP" or node.board[i][j] == "RK":
 					for card in node.red_cards:
 						moves = cards.getCardMoves(card)
 						for move in moves:
-							i_new = i + (sign*move[0])
-							j_new = j + (sign*move[1])
+							i_new = i + (node.turn_sign*move[0])
+							j_new = j + (node.turn_sign*move[1])
 							if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
 							elif node.board[i_new][j_new] == "RK" or node.board[i_new][j_new] == "RP": continue
 							else:
@@ -110,14 +109,12 @@ def createTree(node : GameStateNode, sign : int, depth: int):
 								new_red_cards[index_of_card] = node.common_card								
 								new_common_card = card								
 								node_move = Move(i,j,i_new,j_new,index_of_card)
-								new_node = GameStateNode(new_board, new_blue_cards, new_red_cards, new_common_card, 0, node_move)
-								node.children.append(new_node)
-								
-								if depth > 0 and new_board[4][2] != "RK" and any("BK" in subl for subl in new_board):
-									createTree(new_node, sign*(-1), depth-1)
-								
+								nn_sign = -node.turn_sign
+								new_node = GameStateNode(new_board, new_blue_cards, new_red_cards, new_common_card, 0, node_move, nn_sign)
+								node.children.append(new_node)								
 
 def alpha_beta_pruning(node : GameStateNode, depth, alpha, beta, maximizing):
+	addChildrenToNode(node)
 	if depth == 0 or node.children == []:
 		node.value = evaluate(node)
 		return node.value 
@@ -155,3 +152,40 @@ def evaluate(node : GameStateNode):
 				elif node.board[i][j] == "RP" or node.board[i][j] == "RK": 
 					score += 1
 	return score
+
+def completeTree():
+	board = [[" " for x in range(5)] for y in range(5)]
+	board[0] = ["RP", "RP", "RK", "RP", "RP"]
+	board[4] = ["BP", "BP", "BK", "BP", "BP"]
+
+	red_cards = ["tiger", "dragon"]
+	blue_cards = ["crab", "elephant"]
+	c_card = "monkey"
+	zeroMove = Move(0,0,0,0,0)
+	root = GameStateNode(board, blue_cards, red_cards, c_card, 0, zeroMove, 1)
+
+	addChildrenToNode(root)
+	f = open("gametree.txt", "a")
+	writeNodeToFile(root, f)
+
+	parseandWriteChildren(root, f)
+
+	f.close()	
+
+def writeNodeToFile(node, file):
+	file.write("==========================\n")
+	for i in range(5):
+		file.write("|")
+		for j in range(5):
+			if(node.board[i][j] == " "): file.write("    |")
+			else: file.write(" " + node.board[i][j] + " |")
+		file.write("\n")
+		file.write("--------------------------\n")	
+
+def parseandWriteChildren(nodep, file):
+	for childp in nodep.children:
+		writeNodeToFile(childp, file)
+		parseandWriteChildren(childp, file)
+
+
+completeTree()

@@ -9,3 +9,5 @@ def getCardMoves(name):
         return [[-1,1],[-1,-1],[0,1],[0,-1]]
     elif name == "monkey":
         return [[-1,-1],[-1,1],[1,-1],[1,1]]
+
+    else: print("[ERROR] ", name, " is not a Card!" )

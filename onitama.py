@@ -21,6 +21,7 @@ def select_card(x, l1, l2, window):
 	global sign, red_cards, blue_cards
 
 	if (sign == 1 and (x == 2 or x == 3)) or (sign == -1 and (x == 0 or x == 1)):
+		print(sign, x)
 		if sign == 1: available_moves = cards.getCardMoves(blue_cards[x % 2])
 		else: available_moves = cards.getCardMoves(red_cards[x % 2])
 		for ni in range (5):
@@ -52,22 +53,10 @@ def field_button(i, j, l1, l2, moves, x, window):
 def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 	global sign, extra_card, play_bot
 
-	printboard(board)
-
 	# move the piece
+	old_f = board[new_i][new_j] 
 	board[new_i][new_j] = board[i][j]
 	board[i][j] = " "
-
-	# invert the turn buttons
-	if l1['state'] == DISABLED: l1.config(state=ACTIVE)
-	elif l1['state'] == ACTIVE: l1.config(state=DISABLED)
-	if l2['state'] == DISABLED: l2.config(state=ACTIVE)
-	elif l2['state'] == ACTIVE: l2.config(state=DISABLED)
-	
-	# disable field buttons
-	for ni in range (5):
-		for nj in range (5):
-			buttons[ni][nj].config(command=False)
 
 	# switch the used card with extra card
 	if sign == 1:
@@ -78,10 +67,68 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 		tmp = red_cards[x % 2]
 		red_cards[x % 2] = extra_card
 		extra_card = tmp
+	
+	# disable field and card buttons
+	for ni in range (5):
+		for nj in range (5):
+			buttons[ni][nj].config(command=False)
+
+	bcard1.config(command=False)
+	bcard2.config(command=False)
+	rcard1.config(command=False)
+	rcard2.config(command=False)
 
 	set_cards()
 	set_pieces()
+
+	if (sign == -1 and play_bot):
+		endTurn(l1, l2, window)
+		return
+
+	undop = partial(undoTurn, i, j, new_i, new_j, old_f, x, l1,l2,window)
+	undo_b.config(bg='red', command=undop)
+
+	endp = partial(endTurn, l1, l2, window)
+	endturn_b.config(bg='blue', command=endp)
+
+
+def undoTurn(i, j, new_i, new_j, old_field, x, l1,l2,window):
+	global extra_card
+	# move the piece back
+	moved_piece = board[new_i][new_j]
+	board[new_i][new_j] = old_field
+	board[i][j] = moved_piece
+
+	# switch the cards back
+	if sign == 1:
+		tmp = blue_cards[x % 2]
+		blue_cards[x % 2] = extra_card
+		extra_card = tmp
+	else: 
+		tmp = red_cards[x % 2]
+		red_cards[x % 2] = extra_card
+		extra_card = tmp
+
+	undo_b.config(bg='gray', command=False)
+	endturn_b.config(bg='gray', command=False)
+
+	set_cards()
+	set_pieces()
+	setCardButtonsCommands(l1,l2,window)
+
+def endTurn(l1, l2, window):
+	global sign
 	sign *= -1
+
+	printboard(board)
+
+	# invert the turn buttons
+	if sign == 1:
+		l1.config(bg='blue')
+		l2.config(bg='gray')
+	elif sign == -1:
+		l1.config(bg='gray')
+		l2.config(bg='red')
 
 	# check win condition
 	win_r = check_win()
@@ -92,21 +139,35 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 		window.destroy()		
 		play()
 		return
-	
-	if play_bot and sign == -1:
-		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, -1)
-		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
+
+	undo_b.config(bg='gray', command=False)
+	endturn_b.config(bg='gray', command=False)
+	setCardButtonsCommands(l1,l2,window)
+	botTakeTurn(l1, l2, window)
+
+def setCardButtonsCommands(l1, l2, window):
+
+	p_card = partial(select_card, 2, l1, l2, window)
+	bcard1.config(command=p_card)
+	p_card = partial(select_card, 3, l1, l2, window)
+	bcard2.config(command=p_card)
+	p_card = partial(select_card, 0, l1, l2, window)
+	rcard1.config(command=p_card)
+	p_card = partial(select_card, 1, l1, l2, window)
+	rcard2.config(command=p_card)
 
 # Create the GUI of game board
 def set_board(window, l1, l2):
-	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign
+	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign, endturn_b, undo_b
 
-	sign = 1
+	#sign = 1
 
 	# setting up the back-end board:
 	board = [[" " for x in range(5)] for y in range(5)]
 	board[0] = ["RP", "RP", "RK", "RP", "RP"]
 	board[4] = ["BP", "BP", "BK", "BP", "BP"]
+
+	printboard(board)
 	
 	# setting up the images for the pieces
 	for piece in all_pieces:
@@ -146,8 +207,15 @@ def set_board(window, l1, l2):
 	ecard = Button(window, image=empty, height=128, width=128)
 	ecard.grid(row=7, column=12, rowspan=2, columnspan=2)
 
+	endturn_b = Button(window, text="End Turn", bg='gray')
+	endturn_b.grid(row=7, column=14)
+	undo_b = Button(window, text="UNDO", bg='gray')
+	undo_b.grid(row=7, column=16)
+
 	pick_random_cards()
 	set_cards()
+
+	botTakeTurn(l1,l2,window)
 
 	window.mainloop()
 
@@ -218,18 +286,29 @@ def check_win():
 
 	return 0
 
+def botTakeTurn(l1,l2,window):
+	if sign == -1 and play_bot:
+		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, -1)
+		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
+
 # Initial setup
 def game_window(window, bot):
-	global play_bot
+	global play_bot, sign
 
 	window.destroy()
 	window = Tk()
 	window.title("Onitama")
-	l1 = Button(window, activebackground = "blue", text = "Player 1 : Blue", width = 10, state=ACTIVE)
+
+	possible_signs = [-1, 1]
+	sign = random.choice(possible_signs)
+
+	l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray')
 	
 	l1.grid(row = 1, column = 1, columnspan=2)
-	l2 = Button(window, activebackground = "red", text = "Player 2 : Red",
-				width = 10, state = DISABLED)
+	l2 = Button(window, text = "Player 2 : Red", width = 10, bg='gray')
+
+	if sign == 1: l1.config(bg = 'blue')
+	elif sign == -1: l2.config(bg = 'red')
 	
 	l2.grid(row = 2, column = 1, columnspan=2)
 

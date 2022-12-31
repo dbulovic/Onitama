@@ -187,5 +187,3 @@ def parseandWriteChildren(nodep, file):
 		writeNodeToFile(childp, file)
 		parseandWriteChildren(childp, file)
 
-
-completeTree()

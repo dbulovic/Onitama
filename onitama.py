@@ -9,9 +9,10 @@ from tkinter import messagebox
 import cards
 import onitama_bot
 
+global turn_counter
 global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot
 global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
-sign = 1
+turn_counter = 0
 red_cards = [" ", " "]
 blue_cards = [" ", " "]
 all_cards = ["tiger", "elephant", "monkey", "crab", "dragon"]
@@ -21,7 +22,6 @@ def select_card(x, l1, l2, window):
 	global sign, red_cards, blue_cards
 
 	if (sign == 1 and (x == 2 or x == 3)) or (sign == -1 and (x == 0 or x == 1)):
-		print(sign, x)
 		if sign == 1: available_moves = cards.getCardMoves(blue_cards[x % 2])
 		else: available_moves = cards.getCardMoves(red_cards[x % 2])
 		for ni in range (5):
@@ -146,26 +146,27 @@ def endTurn(l1, l2, window):
 	botTakeTurn(l1, l2, window)
 
 def setCardButtonsCommands(l1, l2, window):
-
 	p_card = partial(select_card, 2, l1, l2, window)
 	bcard1.config(command=p_card)
 	p_card = partial(select_card, 3, l1, l2, window)
 	bcard2.config(command=p_card)
-	p_card = partial(select_card, 0, l1, l2, window)
-	rcard1.config(command=p_card)
-	p_card = partial(select_card, 1, l1, l2, window)
-	rcard2.config(command=p_card)
+	if not play_bot:
+		p_card = partial(select_card, 0, l1, l2, window)
+		rcard1.config(command=p_card)
+		p_card = partial(select_card, 1, l1, l2, window)
+		rcard2.config(command=p_card)
 
 # Create the GUI of game board
 def set_board(window, l1, l2):
 	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign, endturn_b, undo_b
 
-	#sign = 1
-
 	# setting up the back-end board:
 	board = [[" " for x in range(5)] for y in range(5)]
 	board[0] = ["RP", "RP", "RK", "RP", "RP"]
 	board[4] = ["BP", "BP", "BK", "BP", "BP"]
+
+	global turn_counter
+	turn_counter = 0
 
 	printboard(board)
 	
@@ -189,12 +190,16 @@ def set_board(window, l1, l2):
 	set_pieces()	
 
 	p_card = partial(select_card, 0, l1, l2, window)
-	rcard1 = Button(window, command=p_card, image=empty, height=128, width=128)
+	rcard1 = Button(window, image=empty, height=128, width=128)
 	rcard1.grid(row=5, column=6, rowspan=2, columnspan=2)
+	if not play_bot:
+		rcard1.config(command=p_card)
 
 	p_card = partial(select_card, 1, l1, l2, window)
-	rcard2 = Button(window, command=p_card, image=empty, height=128, width=128)
+	rcard2 = Button(window, image=empty, height=128, width=128)
 	rcard2.grid(row=5, column=8, rowspan=2, columnspan=2)
+	if not play_bot:
+		rcard2.config(command=p_card)
 
 	p_card = partial(select_card, 2, l1, l2, window)
 	bcard1 = Button(window, command=p_card, image=empty, height=128, width=128)
@@ -347,6 +352,10 @@ def play():
 	menu.mainloop()
 	
 def printboard(board):
+	global turn_counter
+	if sign == 1: print("Turn #%d -- Blue to move" %turn_counter)
+	elif sign == -1: print("Turn #%d -- Red to move" %turn_counter)
+	turn_counter += 1
 	print("==========================")
 	for i in range(5):
 		print("|", end="")
@@ -354,7 +363,9 @@ def printboard(board):
 			if(board[i][j] == " "): print("   ", end=" |")
 			else: print(" " + board[i][j], end=" |")
 		print()
-		print("--------------------------")	
+		if i == 4: print("==========================")
+		else: print("--------------------------")
+	print()
 
 # Call main function
 if __name__ == '__main__':

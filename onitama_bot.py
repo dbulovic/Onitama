@@ -27,7 +27,7 @@ def getRandomTurn(board, red_cards):
 				return r_piece[0], r_piece[1], i_new, j_new, red_cards.index(r_card)
 			
 def getTurn(board, blue_cards, red_cards, common_card, sign):
-	depth = 4
+	depth = 5
 	nboard = copy.deepcopy(board)
 	nblue_cards = blue_cards[:]
 	nred_cards = red_cards[:]
@@ -148,7 +148,7 @@ def evaluate(node : GameStateNode):
 	for i in range(5):
 			for j in range(5):
 				if node.board[i][j] == "BP" or node.board[i][j] == "BK": 
-					score -= 1
+					score -= 2
 				elif node.board[i][j] == "RP" or node.board[i][j] == "RK": 
 					score += 1
 	return score

@@ -10,8 +10,9 @@ import cards
 import onitama_bot
 
 global turn_counter
-global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot
+global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only_bots
 global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
+only_bots = False
 turn_counter = 0
 red_cards = [" ", " "]
 blue_cards = [" ", " "]
@@ -321,6 +322,56 @@ def game_window(window, bot):
 
 	set_board(window, l1, l2)
 
+def botVbot(window):
+	window.destroy()
+	global sign, board, blue_cards, red_cards, extra_card
+
+	# setting up the back-end board:
+	board = [[" " for x in range(5)] for y in range(5)]
+	board[0] = ["RP", "RP", "RK", "RP", "RP"]
+	board[4] = ["BP", "BP", "BK", "BP", "BP"]
+
+	global turn_counter
+	turn_counter = 0
+
+	pick_random_cards()
+
+	possible_signs = [-1, 1]
+	sign = random.choice(possible_signs)
+
+	printboard(board)
+
+	while(True):
+		if sign == -1:
+			i, j, new_i, new_j, x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, -1)
+		else:
+			i, j, new_i, new_j, x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, 1)
+
+		# move the piece
+		board[new_i][new_j] = board[i][j]
+		board[i][j] = " "
+
+		# switch the used card with extra card
+		if sign == 1:
+			tmp = blue_cards[x % 2]
+			blue_cards[x % 2] = extra_card
+			extra_card = tmp
+		else: 
+			tmp = red_cards[x % 2]
+			red_cards[x % 2] = extra_card
+			extra_card = tmp
+
+		sign *= -1
+		printboard(board)
+
+		win_r = check_win()
+		if win_r:
+			if win_r == 1: winner = "Blue"
+			else: winner = "Red"
+			print("Game Over", "%s Player won the match." % winner)
+			return
+
+
 # main function
 def play():
 	menu = Tk()
@@ -341,29 +392,36 @@ def play():
 	B2 = Button(menu, text = "Play Bot", command = gwindow, activeforeground = 'red',
 				activebackground = "yellow", bg = "red", fg = "yellow",
 				width = 500, font = 'summer', bd = 5)
+
+	botvbotp = partial(botVbot, menu)
+	B3 = Button(menu, text = "Bot v Bot", command = botvbotp, activeforeground = 'red',
+				activebackground = "yellow", bg = "red", fg = "yellow",
+				width = 500, font = 'summer', bd = 5)
 	
-	B3 = Button(menu, text = "Exit", command = menu.destroy, activeforeground = 'red',
+	B4 = Button(menu, text = "Exit", command = menu.destroy, activeforeground = 'red',
 				activebackground = "yellow", bg = "red", fg = "yellow",
 				width = 500, font = 'summer', bd = 5)
 	head.pack(side = 'top')
 	B1.pack(side = 'top')
 	B2.pack(side = 'top')
 	B3.pack(side = 'top')
+	B4.pack(side = 'top')
 	menu.mainloop()
 	
 def printboard(board):
-	global turn_counter
+	global turn_counter, red_cards, blue_cards, extra_card
 	if sign == 1: print("Turn #%d -- Blue to move" %turn_counter)
 	elif sign == -1: print("Turn #%d -- Red to move" %turn_counter)
 	turn_counter += 1
-	print("==========================")
+	print("========================== Red cards: ", red_cards)
 	for i in range(5):
 		print("|", end="")
 		for j in range(5):
 			if(board[i][j] == " "): print("   ", end=" |")
 			else: print(" " + board[i][j], end=" |")
+		if i == 2: print(" Extra card: ", extra_card, end="")
 		print()
-		if i == 4: print("==========================")
+		if i == 4: print("========================== Blue cards: ", blue_cards)
 		else: print("--------------------------")
 	print()
 

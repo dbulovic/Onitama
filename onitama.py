@@ -160,6 +160,7 @@ def setCardButtonsCommands(l1, l2, window):
 # Create the GUI of game board
 def set_board(window, l1, l2):
 	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign, endturn_b, undo_b
+	global blue_cards, red_cards, extra_card
 
 	# setting up the back-end board:
 	board = [[" " for x in range(5)] for y in range(5)]
@@ -168,8 +169,6 @@ def set_board(window, l1, l2):
 
 	global turn_counter
 	turn_counter = 0
-
-	printboard(board)
 	
 	# setting up the images for the pieces
 	for piece in all_pieces:
@@ -220,6 +219,8 @@ def set_board(window, l1, l2):
 
 	pick_random_cards()
 	set_cards()
+
+	printboard(board)
 
 	botTakeTurn(l1,l2,window)
 

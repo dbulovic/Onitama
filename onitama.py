@@ -10,8 +10,11 @@ import cards
 import onitama_bot
 
 global turn_counter
-global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only_bots
+global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only_bots, bot_diff
 global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
+bot_diff = "Random"
+game_mode = "PvP"
+play_bot = False
 only_bots = False
 turn_counter = 0
 red_cards = [" ", " "]
@@ -158,9 +161,25 @@ def setCardButtonsCommands(l1, l2, window):
 		rcard2.config(command=p_card)
 
 # Create the GUI of game board
-def set_board(window, l1, l2):
+def play():
 	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign, endturn_b, undo_b
-	global blue_cards, red_cards, extra_card
+	global blue_cards, red_cards, extra_card, play_bot
+
+	window = Tk()
+	window.title("Onitama")
+
+	possible_signs = [-1, 1]
+	sign = random.choice(possible_signs)
+
+	l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray')
+	
+	l1.grid(row = 1, column = 1, columnspan=2)
+	l2 = Button(window, text = "Player 2 : Red", width = 10, bg='gray')
+
+	if sign == 1: l1.config(bg = 'blue')
+	elif sign == -1: l2.config(bg = 'red')
+	
+	l2.grid(row = 2, column = 1, columnspan=2)
 
 	# setting up the back-end board:
 	board = [[" " for x in range(5)] for y in range(5)]
@@ -217,6 +236,26 @@ def set_board(window, l1, l2):
 	undo_b = Button(window, text="UNDO", bg='gray')
 	undo_b.grid(row=7, column=16)
 
+	mode_label = Label(window, text="Game Mode:")
+	mode_label.grid(row = 5, column=17)
+	global game_mode
+	options_gm = ["PvP", "PvB", "BvB"]
+	game_mode_var = StringVar()
+	game_mode_var.set(game_mode)
+	resetpar = partial(restart, window)
+	play_bot_drop = OptionMenu(window, game_mode_var, *options_gm, command=resetpar)
+	play_bot_drop.grid(row = 5, column=18)
+
+	diff_label = Label(window, text="Bot Mode:")
+	diff_label.grid(row = 5, column=19)
+	global bot_diff
+	options_bd = ["Random", "Hard"]
+	bot_diff_var = StringVar()
+	bot_diff_var.set(bot_diff)
+	resetparbd = partial(restartBD, window)
+	play_bot_drop = OptionMenu(window, bot_diff_var, *options_bd, command=resetparbd)
+	play_bot_drop.grid(row = 5, column=20)
+
 	pick_random_cards()
 	set_cards()
 
@@ -225,6 +264,22 @@ def set_board(window, l1, l2):
 	botTakeTurn(l1,l2,window)
 
 	window.mainloop()
+
+def restart(window, pb):
+	window.destroy()
+	global play_bot, game_mode
+	game_mode = pb
+	if pb == "PvB": play_bot = True
+	elif pb == "PvP": play_bot = False
+	elif pb == "BvB": botVbot()
+	play()
+
+def restartBD(window, bd):
+	window.destroy()
+
+	global bot_diff
+	bot_diff = bd
+	play()
 
 def pick_random_cards():
 	global all_cards, red_cards, blue_cards, extra_card
@@ -295,36 +350,36 @@ def check_win():
 
 def botTakeTurn(l1,l2,window):
 	if sign == -1 and play_bot:
-		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, -1)
+		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(bot_diff, board, blue_cards, red_cards, extra_card, -1)
 		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
 
 # Initial setup
-def game_window(window, bot):
-	global play_bot, sign
+# def game_window(bot):
+	# global play_bot, sign
 
-	window.destroy()
-	window = Tk()
-	window.title("Onitama")
+	# window.destroy()
+	# window = Tk()
+	# window.title("Onitama")
 
-	possible_signs = [-1, 1]
-	sign = random.choice(possible_signs)
+	# possible_signs = [-1, 1]
+	# sign = random.choice(possible_signs)
 
-	l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray')
+	# l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray')
 	
-	l1.grid(row = 1, column = 1, columnspan=2)
-	l2 = Button(window, text = "Player 2 : Red", width = 10, bg='gray')
+	# l1.grid(row = 1, column = 1, columnspan=2)
+	# l2 = Button(window, text = "Player 2 : Red", width = 10, bg='gray')
 
-	if sign == 1: l1.config(bg = 'blue')
-	elif sign == -1: l2.config(bg = 'red')
+	# if sign == 1: l1.config(bg = 'blue')
+	# elif sign == -1: l2.config(bg = 'red')
 	
-	l2.grid(row = 2, column = 1, columnspan=2)
+	# l2.grid(row = 2, column = 1, columnspan=2)
 
-	play_bot = bot
+	# play_bot = bot
 
-	set_board(window, l1, l2)
+	# set_board(window, l1, l2)
 
-def botVbot(window):
-	window.destroy()
+def botVbot():
+	#window.destroy()
 	global sign, board, blue_cards, red_cards, extra_card
 
 	# setting up the back-end board:
@@ -344,9 +399,9 @@ def botVbot(window):
 
 	while(True):
 		if sign == -1:
-			i, j, new_i, new_j, x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, -1)
+			i, j, new_i, new_j, x = onitama_bot.getTurn(bot_diff, board, blue_cards, red_cards, extra_card, -1)
 		else:
-			i, j, new_i, new_j, x = onitama_bot.getTurn(board, blue_cards, red_cards, extra_card, 1)
+			i, j, new_i, new_j, x = onitama_bot.getTurn(bot_diff, board, blue_cards, red_cards, extra_card, 1)
 
 		# move the piece
 		board[new_i][new_j] = board[i][j]
@@ -374,40 +429,40 @@ def botVbot(window):
 
 
 # main function
-def play():
-	menu = Tk()
-	menu.geometry("480x480")
-	menu.title("Onitama")
-	gwindow = partial(game_window, menu, False)
+# def play():
+	# menu = Tk()
+	# menu.geometry("480x480")
+	# menu.title("Onitama")
+	# gwindow = partial(game_window, menu, False)
 	
-	head = Button(menu, text = "Onitama: Strategy Game",
-				activeforeground = 'red',
-				activebackground = "yellow", bg = "yellow",
-				fg = "red", width = 500, font = 'summer', bd = 5)
+	# head = Button(menu, text = "Onitama: Strategy Game",
+	# 			activeforeground = 'red',
+	# 			activebackground = "yellow", bg = "yellow",
+	# 			fg = "red", width = 500, font = 'summer', bd = 5)
 	
-	B1 = Button(menu, text = "Play", command = gwindow, activeforeground = 'red',
-				activebackground = "yellow", bg = "red", fg = "yellow",
-				width = 500, font = 'summer', bd = 5)
+	# B1 = Button(menu, text = "Play", command = gwindow, activeforeground = 'red',
+	# 			activebackground = "yellow", bg = "red", fg = "yellow",
+	# 			width = 500, font = 'summer', bd = 5)
 
-	gwindow = partial(game_window, menu, True)
-	B2 = Button(menu, text = "Play Bot", command = gwindow, activeforeground = 'red',
-				activebackground = "yellow", bg = "red", fg = "yellow",
-				width = 500, font = 'summer', bd = 5)
+	# gwindow = partial(game_window, menu, True)
+	# B2 = Button(menu, text = "Play Bot", command = gwindow, activeforeground = 'red',
+	# 			activebackground = "yellow", bg = "red", fg = "yellow",
+	# 			width = 500, font = 'summer', bd = 5)
 
-	botvbotp = partial(botVbot, menu)
-	B3 = Button(menu, text = "Bot v Bot", command = botvbotp, activeforeground = 'red',
-				activebackground = "yellow", bg = "red", fg = "yellow",
-				width = 500, font = 'summer', bd = 5)
+	# botvbotp = partial(botVbot, menu)
+	# B3 = Button(menu, text = "Bot v Bot", command = botvbotp, activeforeground = 'red',
+	# 			activebackground = "yellow", bg = "red", fg = "yellow",
+	# 			width = 500, font = 'summer', bd = 5)
 	
-	B4 = Button(menu, text = "Exit", command = menu.destroy, activeforeground = 'red',
-				activebackground = "yellow", bg = "red", fg = "yellow",
-				width = 500, font = 'summer', bd = 5)
-	head.pack(side = 'top')
-	B1.pack(side = 'top')
-	B2.pack(side = 'top')
-	B3.pack(side = 'top')
-	B4.pack(side = 'top')
-	menu.mainloop()
+	# B4 = Button(menu, text = "Exit", command = menu.destroy, activeforeground = 'red',
+	# 			activebackground = "yellow", bg = "red", fg = "yellow",
+	# 			width = 500, font = 'summer', bd = 5)
+	# head.pack(side = 'top')
+	# B1.pack(side = 'top')
+	# B2.pack(side = 'top')
+	# B3.pack(side = 'top')
+	# B4.pack(side = 'top')
+	# menu.mainloop()
 	
 def printboard(board):
 	global turn_counter, red_cards, blue_cards, extra_card

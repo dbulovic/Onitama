@@ -67,10 +67,11 @@ def getTurn(evaluation_function, board, blue_cards, red_cards, common_card, now_
 	ncc = common_card
 	zeroMove = Move(0,0,0,0,0)
 	root = GameStateNode(nboard, nblue_cards, nred_cards, ncc, 0, zeroMove, now_sign)
-	if evaluation_function != "Random":
-		alpha_beta_pruning(root, depth, -1000, +1000, True)
-	else:
+	maximizer = True if now_sign == -1 else False
+	if evaluation_function == "Random":
 		return getRandomTurn(root)
+	else:
+		alpha_beta_pruning(root, depth, -1000, +1000, maximizer, evaluation_function)		
 	
 	for child in root.children:
 		if child.value == root.value:
@@ -131,16 +132,18 @@ def addChildrenToNode(node : GameStateNode):
 								new_node = GameStateNode(new_board, new_blue_cards, new_red_cards, new_common_card, 0, node_move, nn_sign)
 								node.children.append(new_node)								
 
-def alpha_beta_pruning(node : GameStateNode, depth, alpha, beta, maximizing):
+def alpha_beta_pruning(node : GameStateNode, depth, alpha, beta, maximizing, ev_func):
 	addChildrenToNode(node)
 	if depth == 0 or node.children == []:
-		node.value = evaluate(node)
+		if ev_func == "CountPawns": node.value = evaluatePawns(node)
+		elif ev_func == "CountMoves": node.value = evaluateMoves(node)
+		elif ev_func == "ReachTemple": node.value = evaluateReach(node)
 		return node.value 
 	
 	if maximizing:
 		value = -10000
 		for child in node.children:
-			value = max(value, alpha_beta_pruning(child, depth-1, alpha, beta, False))
+			value = max(value, alpha_beta_pruning(child, depth-1, alpha, beta, False, ev_func))
 			alpha = max(alpha, value)
 			if value >= beta: break
 		node.value = value
@@ -149,37 +152,13 @@ def alpha_beta_pruning(node : GameStateNode, depth, alpha, beta, maximizing):
 	else:
 		value = 10000
 		for child in node.children:
-			value = min(value, alpha_beta_pruning(child, depth-1, alpha, beta, True))
+			value = min(value, alpha_beta_pruning(child, depth-1, alpha, beta, True, ev_func))
 			beta = min(beta, value)
 			if value <= alpha: break
 		node.value = value
 		return value
 	
-def alpha_beta_pruning2(node : GameStateNode, depth, alpha, beta, maximizing):
-	addChildrenToNode(node)
-	if depth == 0 or node.children == []:
-		node.value = evaluate2(node)
-		return node.value 
-	
-	if maximizing:
-		value = -10000
-		for child in node.children:
-			value = max(value, alpha_beta_pruning2(child, depth-1, alpha, beta, False))
-			alpha = max(alpha, value)
-			if value >= beta: break
-		node.value = value
-		return value 
-	
-	else:
-		value = 10000
-		for child in node.children:
-			value = min(value, alpha_beta_pruning2(child, depth-1, alpha, beta, True))
-			beta = min(beta, value)
-			if value <= alpha: break
-		node.value = value
-		return value
-
-def evaluate(node : GameStateNode):
+def evaluatePawns(node : GameStateNode):
 	if node.board[0][2] == "BK" or not any("RK" in subl for subl in node.board):
 		return -10000
 	
@@ -195,38 +174,89 @@ def evaluate(node : GameStateNode):
 					score += 10
 	return score
 
-def evaluate2(node : GameStateNode):
+def evaluateMoves(node : GameStateNode):
 	if node.board[0][2] == "BK" or not any("RK" in subl for subl in node.board):
-		return -100
+		return -10000
 	
 	if node.board[4][2] == "RK" or not any("BK" in subl for subl in node.board):
-		return 100
+		return 10000
 
 	score = 0
-	for i in range(5):
-			for j in range(5):
-				if node.board[i][j] == "BP" or node.board[i][j] == "BK": 
-					score -= 1
-				elif node.board[i][j] == "RP" or node.board[i][j] == "RK": 
-					score += 2
-	
-	if "tiger" in node.blue_cards: score -= 3
-	if "dragon" in node.blue_cards: score -= 2
-	# if node.turn_sign == -1:
-	# 	for i in range(5):
-	# 		for j in range(5):
-	# 			if node.board[i][j] == "BP" or node.board[i][j] == "BK":
-	# 				for card in node.blue_cards:
-	# 					moves = cards.getCardMoves(card)
-	# 					for move in moves:
-	# 						i_new = i + (move[0])
-	# 						j_new = j + (move[1])
-	# 						if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
-
-	# 						if node.board[i_new][j_new] == "RK": return -40
-	# 						if node.board[i][j] == "BK" and i_new == 0 and j_new == 2: return -40
+	if node.turn_sign == 1:
+		for i in range(5):
+				for j in range(5):
+					if node.board[i][j] == "BP" or node.board[i][j] == "BK":
+						for card in node.blue_cards:
+							moves = cards.getCardMoves(card)
+							for move in moves:
+								i_new = i + (node.turn_sign*move[0])
+								j_new = j + (node.turn_sign*move[1])
+								if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
+								elif node.board[i_new][j_new] == "BK" or node.board[i_new][j_new] == "BP": continue
+								else:
+									score -= 10
+								
+	elif node.turn_sign == -1:
+		for i in range(5):
+				for j in range(5):
+					if node.board[i][j] == "RP" or node.board[i][j] == "RK":
+						for card in node.red_cards:
+							moves = cards.getCardMoves(card)
+							for move in moves:
+								i_new = i + (node.turn_sign*move[0])
+								j_new = j + (node.turn_sign*move[1])
+								if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
+								elif node.board[i_new][j_new] == "RK" or node.board[i_new][j_new] == "RP": continue
+								else:
+									score += 10	
 
 	return score
+
+def evaluateReach(node: GameStateNode):
+	if node.board[0][2] == "BK" or not any("RK" in subl for subl in node.board):
+		return -10000
+	
+	if node.board[4][2] == "RK" or not any("BK" in subl for subl in node.board):
+		return 10000
+
+	for i in range(5):
+			for j in range(5):
+				if node.board[i][j] == "RK":
+					for card in node.red_cards:
+						moves = cards.getCardMoves(card)
+						for move in moves:
+							i_new = i + (node.turn_sign*move[0])
+							j_new = j + (node.turn_sign*move[1])
+							if i_new < 0 or j_new < 0 or i_new > 4 or j_new > 4: continue
+							elif node.board[i_new][j_new] == "RK" or node.board[i_new][j_new] == "RP": continue
+							elif i_new == 4 and j_new == 2: return 50
+					
+					moves1 = cards.getCardMoves(node.red_cards[0])
+					moves2 = cards.getCardMoves(node.red_cards[1])
+
+					for move1 in moves1:
+						for move2 in moves2:
+							i_tot = i + node.turn_sign*move1[0] + node.turn_sign*move2[0]
+							j_tot = j + node.turn_sign*move1[1] + node.turn_sign*move2[1]
+							if i_tot < 0 or j_tot < 0 or i_tot > 4 or j_tot > 4: continue
+							elif node.board[i_tot][j_tot] == "RK" or node.board[i_tot][j_tot] == "RP": continue
+							elif i_tot == 4 and j_tot == 2: return 25
+
+					extra_moves = cards.getCardMoves(node.common_card)	
+					for move1 in moves1:
+						for move2 in moves2:
+							for emove in extra_moves:
+								i_tot = i + node.turn_sign*move1[0] + node.turn_sign*move2[0] + node.turn_sign*emove[0]
+								j_tot = j + node.turn_sign*move1[1] + node.turn_sign*move2[1] + node.turn_sign*emove[1]
+								if i_tot < 0 or j_tot < 0 or i_tot > 4 or j_tot > 4: continue
+								elif node.board[i_tot][j_tot] == "RK" or node.board[i_tot][j_tot] == "RP": continue
+								elif i_tot == 4 and j_tot == 2: return 13
+					break
+			
+	return 0
+
+
+
 
 # def evaluate3(node : GameStateNode):
 # 	if node.board[0][2] == "BK" or not any("RK" in subl for subl in node.board):

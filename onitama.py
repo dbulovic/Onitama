@@ -14,6 +14,10 @@ global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only
 global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
 global bot1_var, bot2_var, options_bd
 
+global bot1_depth, bot2_depth, depth_options
+
+depth_options = [1,2,3,4,5]
+
 options_bd = ["Random", "CountPawns", "CountMoves", "ReachTemple"]
 bot_diff = "Random"
 game_mode = "PvP"
@@ -29,8 +33,22 @@ def select_card(x, l1, l2, window):
 	global sign, red_cards, blue_cards
 
 	if (sign == 1 and (x == 2 or x == 3)) or (sign == -1 and (x == 0 or x == 1)):
-		if sign == 1: available_moves = cards.getCardMoves(blue_cards[x % 2])
-		else: available_moves = cards.getCardMoves(red_cards[x % 2])
+		if sign == 1: 
+			available_moves = cards.getCardMoves(blue_cards[x % 2])
+			if x%2 == 0: 
+				bcard1.config(bd = 7)
+				bcard2.config(bd = 2)
+			elif x%2 == 1: 
+				bcard1.config(bd = 2)
+				bcard2.config(bd = 7)
+		else: 
+			available_moves = cards.getCardMoves(red_cards[x % 2])
+			if x%2 == 0: 
+				rcard1.config(bd = 7)
+				rcard2.config(bd = 2)
+			elif x%2 == 1: 
+				rcard1.config(bd = 2)
+				rcard2.config(bd = 7)
 		for ni in range (5):
 			for nj in range (5):
 				fieldp = partial(field_button, ni, nj, l1, l2, available_moves, x, window)
@@ -209,8 +227,11 @@ def play():
 			buttons[i].append(Button(window, bd=5, image=empty, height=64, width=64))
 			buttons[i][j].grid(row=m, column=n)
 
-	set_pieces()	
+	set_pieces()
 
+
+	rcardslabel = Label(window, text="Red cards:", bg="red")
+	rcardslabel.grid(row=4,column=6)
 	p_card = partial(select_card, 0, l1, l2, window)
 	rcard1 = Button(window, image=empty, height=128, width=128)
 	rcard1.grid(row=5, column=6, rowspan=2, columnspan=2)
@@ -223,6 +244,8 @@ def play():
 	if not play_bot:
 		rcard2.config(command=p_card)
 
+	rcardslabel = Label(window, text="Blue cards:", bg="blue")
+	rcardslabel.grid(row=10,column=6)
 	p_card = partial(select_card, 2, l1, l2, window)
 	bcard1 = Button(window, command=p_card, image=empty, height=128, width=128)
 	bcard1.grid(row=8, column=6, rowspan=2, columnspan=2)
@@ -259,6 +282,18 @@ def play():
 	resetparbd = partial(restartBD, window)
 	play_bot_drop = OptionMenu(window, bot_diff_var, *options_bd, command=resetparbd)
 	play_bot_drop.grid(row = 5, column=20)
+
+	global bot1_depth
+	depth_label = Label(window, text="Bot Depth:")
+	depth_label.grid(row = 5, column=21)
+	bot1_depth = IntVar()
+	bot1_depth.set(4)
+	bot_depth_drop = OptionMenu(window, bot1_depth, *depth_options)
+	bot_depth_drop.grid(row = 5, column=22)
+
+	onitamaimage = PhotoImage(file=r"imgs/tugraz.png")
+	onitamabutton = Button(window, height=273, width=400, image=onitamaimage)
+	onitamabutton.grid(row=6, column=17, rowspan=4, columnspan=6)
 
 	pick_random_cards()
 	set_cards()
@@ -306,10 +341,10 @@ def pick_random_cards():
 def set_cards():
 	global red_cards, blue_cards, extra_card
 	
-	exec("rcard1.config(image=%s)" % red_cards[0])
-	exec("rcard2.config(image=%s)" % red_cards[1])
-	exec("bcard1.config(image=%s)" % blue_cards[0])
-	exec("bcard2.config(image=%s)" % blue_cards[1])
+	exec("rcard1.config(image=%s, bd = 2)" % red_cards[0])
+	exec("rcard2.config(image=%s, bd = 2)" % red_cards[1])
+	exec("bcard1.config(image=%s, bd = 2)" % blue_cards[0])
+	exec("bcard2.config(image=%s, bd = 2)" % blue_cards[1])
 	exec("ecard.config(image=%s)" % extra_card)
 
 def set_pieces():
@@ -356,7 +391,7 @@ def check_win():
 
 def botTakeTurn(l1,l2,window):
 	if sign == -1 and play_bot:
-		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(bot_diff, board, blue_cards, red_cards, extra_card, -1)
+		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(bot_diff, bot1_depth.get(), board, blue_cards, red_cards, extra_card, -1)
 		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
 
 # Initial setup
@@ -405,6 +440,21 @@ def botVbot():
 	bot2_drop = OptionMenu(window_bvb, bot2_var, *options_bd)
 	bot2_drop.grid(row = 2, column=2)
 
+	global bot1_depth, bot2_depth
+	depth_label = Label(window_bvb, text="Red Bot Depth:")
+	depth_label.grid(row = 1, column=3)
+	bot1_depth = IntVar()
+	bot1_depth.set(4)
+	bot1_depth_drop = OptionMenu(window_bvb, bot1_depth, *depth_options)
+	bot1_depth_drop.grid(row = 1, column=4)
+
+	depth2_label = Label(window_bvb, text="Blue Bot Depth:")
+	depth2_label.grid(row = 2, column=3)
+	bot2_depth = IntVar()
+	bot2_depth.set(4)
+	bot2_depth_drop = OptionMenu(window_bvb, bot2_depth, *depth_options)
+	bot2_depth_drop.grid(row = 2, column=4)
+
 	play_bvb_button = Button(window_bvb ,text="GO", command=play_bvb)
 	play_bvb_button.grid(row=3, column=2)
 
@@ -435,9 +485,9 @@ def play_bvb():
 
 	while(True):
 		if sign == -1:
-			i, j, new_i, new_j, x = onitama_bot.getTurn(red_strategy, board, blue_cards, red_cards, extra_card, -1)
+			i, j, new_i, new_j, x = onitama_bot.getTurn(red_strategy, bot1_depth.get(), board, blue_cards, red_cards, extra_card, -1)
 		else:
-			i, j, new_i, new_j, x = onitama_bot.getTurn(blue_strategy, board, blue_cards, red_cards, extra_card, 1)
+			i, j, new_i, new_j, x = onitama_bot.getTurn(blue_strategy, bot1_depth.get(), board, blue_cards, red_cards, extra_card, 1)
 
 		# move the piece
 		board[new_i][new_j] = board[i][j]

@@ -59,8 +59,7 @@ def getRandomTurn(node: GameStateNode):
 			else:
 				return r_piece[0], r_piece[1], i_new, j_new, cards_tmp.index(r_card)
 			
-def getTurn(evaluation_function, board, blue_cards, red_cards, common_card, now_sign):
-	depth = 4
+def getTurn(evaluation_function, depth, board, blue_cards, red_cards, common_card, now_sign):
 	nboard = copy.deepcopy(board)
 	nblue_cards = blue_cards[:]
 	nred_cards = red_cards[:]

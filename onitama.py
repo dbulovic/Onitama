@@ -9,16 +9,16 @@ from tkinter import messagebox
 import cards
 import onitama_bot
 
-global turn_counter
+global turn_counter, date_version
 global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only_bots, bot_diff
 global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
 global bot1_var, bot2_var, options_bd
-
 global bot1_depth, bot2_depth, depth_options
+global rcardslabel1, rcardslabel2, bcardslabel1, bcardslabel2, ncardlabel
 
+date_version = "27-Jul-2023"
 depth_options = [1,2,3,4,5]
-
-options_bd = ["Random", "CountPawns", "CountMoves", "ReachTemple"]
+options_bd = ["Random", "CountPawns", "CountMoves", "ReachTemple", "Combination"]
 bot_diff = "Random"
 game_mode = "PvP"
 play_bot = False
@@ -231,9 +231,11 @@ def play():
 
 	set_pieces()
 
-
-	rcardslabel = Label(window, text="Red cards:", bg="red")
-	rcardslabel.grid(row=4,column=6)
+	global rcardslabel1, rcardslabel2, bcardslabel1, bcardslabel2, ncardlabel
+	rcardslabel1 = Label(window, text="Red card1", bg="red")
+	rcardslabel1.grid(row=4,column=6)
+	rcardslabel2 = Label(window, text="Red card2", bg="red")
+	rcardslabel2.grid(row=4,column=8)
 	p_card = partial(select_card, 0, l1, l2, window)
 	rcard1 = Button(window, image=empty, height=128, width=128)
 	rcard1.grid(row=5, column=6, rowspan=2, columnspan=2)
@@ -246,8 +248,14 @@ def play():
 	if not play_bot:
 		rcard2.config(command=p_card)
 
-	rcardslabel = Label(window, text="Blue cards:", bg="blue")
-	rcardslabel.grid(row=10,column=6)
+	bcardslabel1 = Label(window, text="Blue card1", bg="blue")
+	bcardslabel1.grid(row=10,column=6)
+	bcardslabel2 = Label(window, text="Blue card2", bg="blue")
+	bcardslabel2.grid(row=10,column=8)
+
+	ncardlabel = Label(window, text="neutral card:\ntmp", bg="gray")
+	ncardlabel.grid(row=8,column=14)
+
 	p_card = partial(select_card, 2, l1, l2, window)
 	bcard1 = Button(window, command=p_card, image=empty, height=128, width=128)
 	bcard1.grid(row=8, column=6, rowspan=2, columnspan=2)
@@ -293,10 +301,6 @@ def play():
 	bot_depth_drop = OptionMenu(window, bot1_depth, *depth_options)
 	bot_depth_drop.grid(row = 5, column=22)
 
-	# onitamaimage = PhotoImage(file=r"imgs/tugraz.png")
-	# onitamabutton = Button(window, height=273, width=400, image=onitamaimage)
-	# onitamabutton.grid(row=6, column=17, rowspan=4, columnspan=6)
-
 	bot1_var = StringVar()
 	bot2_var = StringVar()
 
@@ -327,12 +331,15 @@ def play():
 	bot2_depth_drop.grid(row = 7, column=20)
 
 	partial_bvb = partial(play_bvb, window)
-	play_bvb_button = Button(window ,text="GO", command=partial_bvb)
+	play_bvb_button = Button(window ,text="Whole Game", command=partial_bvb)
 	play_bvb_button.grid(row=8, column=18)
 
 	partial_single_bvb = partial(single_bvb, l1,l2,window)
 	single_bvb_button = Button(window ,text="Single Move", command=partial_single_bvb)
 	single_bvb_button.grid(row=8, column=20)
+
+	help_button = Button(window, text="?", command=helpButton, bg='yellow')
+	help_button.grid(row=1, column=22)
 
 	if game_mode == "PvP":
 		play_bot_drop.config(state=DISABLED)
@@ -372,12 +379,16 @@ def play():
 
 	window.mainloop()
 
+def helpButton():
+	global date_version
+	messagebox.showinfo("Help", "Onitama strategy game\n Version from "+date_version+"\nGame modes:\n PvP = Player versus Player\n PvB = Player versus Bot\n BvB = Bot vs Bot")
+
 def restart(window, pb):
 	window.destroy()
 	global play_bot, game_mode
 	game_mode = pb
 	if pb == "PvB": play_bot = True
-	elif pb == "PvP": play_bot = False
+	else: play_bot = False
 	play()
 
 def restartBD(window, bd):
@@ -405,12 +416,19 @@ def pick_random_cards():
 
 def set_cards():
 	global red_cards, blue_cards, extra_card
+	global rcardslabel1, rcardslabel2, bcardslabel1, bcardslabel2, ncardlabel
 	
 	exec("rcard1.config(image=%s, bd = 2)" % red_cards[0])
 	exec("rcard2.config(image=%s, bd = 2)" % red_cards[1])
 	exec("bcard1.config(image=%s, bd = 2)" % blue_cards[0])
 	exec("bcard2.config(image=%s, bd = 2)" % blue_cards[1])
 	exec("ecard.config(image=%s)" % extra_card)
+
+	rcardslabel1.config(text=red_cards[0])
+	rcardslabel2.config(text=red_cards[1])
+	bcardslabel1.config(text=blue_cards[0])
+	bcardslabel2.config(text=blue_cards[1])
+	ncardlabel.config(text="neutral card:\n%s" % extra_card)
 
 def set_pieces():
 	global board, buttons
@@ -473,71 +491,6 @@ def single_bvb(l1,l2,window):
 
 	move_piece(i, j, new_i, new_j, l1, l2, x, window)
 
-
-# Initial setup
-# def game_window(bot):
-	# global play_bot, sign
-
-	# window.destroy()
-	# window = Tk()
-	# window.title("Onitama")
-
-	# possible_signs = [-1, 1]
-	# sign = random.choice(possible_signs)
-
-	# l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray')
-	
-	# l1.grid(row = 1, column = 1, columnspan=2)
-	# l2 = Button(window, text = "Player 2 : Red", width = 10, bg='gray')
-
-	# if sign == 1: l1.config(bg = 'blue')
-	# elif sign == -1: l2.config(bg = 'red')
-	
-	# l2.grid(row = 2, column = 1, columnspan=2)
-
-	# play_bot = bot
-
-	# set_board(window, l1, l2)
-
-# def botVbot():
-# 	window_bvb = Tk()
-# 	window_bvb.geometry("400x400")
-# 	window_bvb.title("Onitama BvB")
-# 	global bot1_var, bot2_var, options_bd
-
-# 	bot1_var = StringVar()
-# 	bot2_var = StringVar()
-
-# 	b1_label = Label(window_bvb, text="Red Bot:", bg="red")
-# 	b1_label.grid(row = 1, column=1)
-# 	bot1_var.set("Random")
-# 	bot1_drop = OptionMenu(window_bvb, bot1_var, *options_bd)
-# 	bot1_drop.grid(row = 1, column=2)
-
-# 	b2_label = Label(window_bvb, text="Blue Bot:", bg="blue")
-# 	b2_label.grid(row = 2, column=1)
-# 	bot2_var.set("Random")
-# 	bot2_drop = OptionMenu(window_bvb, bot2_var, *options_bd)
-# 	bot2_drop.grid(row = 2, column=2)
-
-# 	global bot1_depth, bot2_depth
-# 	depth_label = Label(window_bvb, text="Red Bot Depth:")
-# 	depth_label.grid(row = 1, column=3)
-# 	bot1_depth = IntVar()
-# 	bot1_depth.set(4)
-# 	bot1_depth_drop = OptionMenu(window_bvb, bot1_depth, *depth_options)
-# 	bot1_depth_drop.grid(row = 1, column=4)
-
-# 	depth2_label = Label(window_bvb, text="Blue Bot Depth:")
-# 	depth2_label.grid(row = 2, column=3)
-# 	bot2_depth = IntVar()
-# 	bot2_depth.set(4)
-# 	bot2_depth_drop = OptionMenu(window_bvb, bot2_depth, *depth_options)
-# 	bot2_depth_drop.grid(row = 2, column=4)
-
-# 	play_bvb_button = Button(window_bvb ,text="GO", command=play_bvb)
-# 	play_bvb_button.grid(row=3, column=2)
-
 def play_bvb(window):
 	global sign, board, blue_cards, red_cards, extra_card, bot1_var, bot2_var
 
@@ -597,43 +550,6 @@ def play_bvb(window):
 			window.destroy()		
 			play()
 			return
-
-
-# main function
-# def play():
-	# menu = Tk()
-	# menu.geometry("480x480")
-	# menu.title("Onitama")
-	# gwindow = partial(game_window, menu, False)
-	
-	# head = Button(menu, text = "Onitama: Strategy Game",
-	# 			activeforeground = 'red',
-	# 			activebackground = "yellow", bg = "yellow",
-	# 			fg = "red", width = 500, font = 'summer', bd = 5)
-	
-	# B1 = Button(menu, text = "Play", command = gwindow, activeforeground = 'red',
-	# 			activebackground = "yellow", bg = "red", fg = "yellow",
-	# 			width = 500, font = 'summer', bd = 5)
-
-	# gwindow = partial(game_window, menu, True)
-	# B2 = Button(menu, text = "Play Bot", command = gwindow, activeforeground = 'red',
-	# 			activebackground = "yellow", bg = "red", fg = "yellow",
-	# 			width = 500, font = 'summer', bd = 5)
-
-	# botvbotp = partial(botVbot, menu)
-	# B3 = Button(menu, text = "Bot v Bot", command = botvbotp, activeforeground = 'red',
-	# 			activebackground = "yellow", bg = "red", fg = "yellow",
-	# 			width = 500, font = 'summer', bd = 5)
-	
-	# B4 = Button(menu, text = "Exit", command = menu.destroy, activeforeground = 'red',
-	# 			activebackground = "yellow", bg = "red", fg = "yellow",
-	# 			width = 500, font = 'summer', bd = 5)
-	# head.pack(side = 'top')
-	# B1.pack(side = 'top')
-	# B2.pack(side = 'top')
-	# B3.pack(side = 'top')
-	# B4.pack(side = 'top')
-	# menu.mainloop()
 	
 def printboard(board):
 	global turn_counter, red_cards, blue_cards, extra_card
@@ -657,3 +573,4 @@ def printboard(board):
 # Call main function
 if __name__ == '__main__':
 	play()
+

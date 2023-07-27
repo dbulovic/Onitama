@@ -137,6 +137,7 @@ def alpha_beta_pruning(node : GameStateNode, depth, alpha, beta, maximizing, ev_
 		if ev_func == "CountPawns": node.value = evaluatePawns(node)
 		elif ev_func == "CountMoves": node.value = evaluateMoves(node)
 		elif ev_func == "ReachTemple": node.value = evaluateReach(node)
+		elif ev_func == "Combination": node.value = evaluateCombination(node)
 		return node.value 
 	
 	if maximizing:
@@ -253,6 +254,15 @@ def evaluateReach(node: GameStateNode):
 					break
 			
 	return 0
+
+def evaluateCombination(node : GameStateNode):
+	if node.board[0][2] == "BK" or not any("RK" in subl for subl in node.board):
+		return -10000
+	
+	if node.board[4][2] == "RK" or not any("BK" in subl for subl in node.board):
+		return 10000
+	
+	return evaluateMoves(node)/3 + evaluatePawns(node)/3 + evaluateReach(node)/3
 
 
 

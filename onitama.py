@@ -76,7 +76,7 @@ def field_button(i, j, l1, l2, moves, x, window):
 			buttons[i_new][j_new].config(command=movep, image=available)
 
 def move_piece(i, j, new_i, new_j, l1, l2, x, window):
-	global sign, extra_card, play_bot
+	global sign, extra_card, game_mode
 
 	# move the piece
 	old_f = board[new_i][new_j] 
@@ -106,7 +106,7 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 	set_cards()
 	set_pieces()
 
-	if (sign == -1 and play_bot):
+	if ((sign == -1 and game_mode == "PvB") or game_mode == "BvB"):
 		endTurn(l1, l2, window)
 		return
 
@@ -171,6 +171,8 @@ def endTurn(l1, l2, window):
 	botTakeTurn(l1, l2, window)
 
 def setCardButtonsCommands(l1, l2, window):
+	global game_mode 
+	if game_mode == "BvB": return
 	p_card = partial(select_card, 2, l1, l2, window)
 	bcard1.config(command=p_card)
 	p_card = partial(select_card, 3, l1, l2, window)
@@ -184,7 +186,7 @@ def setCardButtonsCommands(l1, l2, window):
 # Create the GUI of game board
 def play():
 	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign, endturn_b, undo_b
-	global blue_cards, red_cards, extra_card, play_bot
+	global blue_cards, red_cards, extra_card, play_bot, bot1_depth, bot2_depth, bot1_var, bot2_var, options_bd
 
 	window = Tk()
 	window.title("Onitama")
@@ -257,7 +259,7 @@ def play():
 	ecard = Button(window, image=empty, height=128, width=128)
 	ecard.grid(row=7, column=12, rowspan=2, columnspan=2)
 
-	endturn_b = Button(window, text="End Turn", bg='gray')
+	endturn_b = Button(window, text="Commit Turn", bg='gray')
 	endturn_b.grid(row=7, column=14)
 	undo_b = Button(window, text="UNDO", bg='gray')
 	undo_b.grid(row=7, column=16)
@@ -291,9 +293,75 @@ def play():
 	bot_depth_drop = OptionMenu(window, bot1_depth, *depth_options)
 	bot_depth_drop.grid(row = 5, column=22)
 
-	onitamaimage = PhotoImage(file=r"imgs/tugraz.png")
-	onitamabutton = Button(window, height=273, width=400, image=onitamaimage)
-	onitamabutton.grid(row=6, column=17, rowspan=4, columnspan=6)
+	# onitamaimage = PhotoImage(file=r"imgs/tugraz.png")
+	# onitamabutton = Button(window, height=273, width=400, image=onitamaimage)
+	# onitamabutton.grid(row=6, column=17, rowspan=4, columnspan=6)
+
+	bot1_var = StringVar()
+	bot2_var = StringVar()
+
+	b1_label = Label(window, text="Red Bot:", bg="red")
+	b1_label.grid(row = 6, column=17)
+	bot1_var.set("Random")
+	bot1_drop = OptionMenu(window, bot1_var, *options_bd)
+	bot1_drop.grid(row = 6, column=18)
+
+	b2_label = Label(window, text="Blue Bot:", bg="blue")
+	b2_label.grid(row = 7, column=17)
+	bot2_var.set("Random")
+	bot2_drop = OptionMenu(window, bot2_var, *options_bd)
+	bot2_drop.grid(row = 7, column=18)
+
+	depth_label = Label(window, text="Red Bot Depth:")
+	depth_label.grid(row = 6, column=19)
+	bot1_depth = IntVar()
+	bot1_depth.set(4)
+	bot1_depth_drop = OptionMenu(window, bot1_depth, *depth_options)
+	bot1_depth_drop.grid(row = 6, column=20)
+
+	depth2_label = Label(window, text="Blue Bot Depth:")
+	depth2_label.grid(row = 7, column=19)
+	bot2_depth = IntVar()
+	bot2_depth.set(4)
+	bot2_depth_drop = OptionMenu(window, bot2_depth, *depth_options)
+	bot2_depth_drop.grid(row = 7, column=20)
+
+	partial_bvb = partial(play_bvb, window)
+	play_bvb_button = Button(window ,text="GO", command=partial_bvb)
+	play_bvb_button.grid(row=8, column=18)
+
+	partial_single_bvb = partial(single_bvb, l1,l2,window)
+	single_bvb_button = Button(window ,text="Single Move", command=partial_single_bvb)
+	single_bvb_button.grid(row=8, column=20)
+
+	if game_mode == "PvP":
+		play_bot_drop.config(state=DISABLED)
+		bot_depth_drop.config(state=DISABLED)
+		bot1_drop.config(state=DISABLED)
+		bot1_depth_drop.config(state=DISABLED)
+		bot2_drop.config(state=DISABLED)
+		bot2_depth_drop.config(state=DISABLED)
+		play_bvb_button.config(state=DISABLED)
+		single_bvb_button.config(state=DISABLED)
+		play_bot = False
+	elif game_mode == "PvB":
+		bot1_drop.config(state=DISABLED)
+		bot1_depth_drop.config(state=DISABLED)
+		bot2_drop.config(state=DISABLED)
+		bot2_depth_drop.config(state=DISABLED)
+		play_bvb_button.config(state=DISABLED)
+		single_bvb_button.config(state=DISABLED)
+		bcard1.config(command=False)
+		bcard2.config(command=False)
+		play_bot = True
+	elif game_mode == "BvB":
+		play_bot_drop.config(state=DISABLED)
+		bot_depth_drop.config(state=DISABLED)
+		bcard1.config(command=False)
+		bcard2.config(command=False)
+		rcard1.config(command=False)
+		rcard2.config(command=False)
+		play_bot = False
 
 	pick_random_cards()
 	set_cards()
@@ -310,9 +378,6 @@ def restart(window, pb):
 	game_mode = pb
 	if pb == "PvB": play_bot = True
 	elif pb == "PvP": play_bot = False
-	elif pb == "BvB": 
-		botVbot()
-		return
 	play()
 
 def restartBD(window, bd):
@@ -390,9 +455,24 @@ def check_win():
 	return 0
 
 def botTakeTurn(l1,l2,window):
-	if sign == -1 and play_bot:
+	global game_mode
+	if sign == -1 and game_mode == "PvB":
 		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(bot_diff, bot1_depth.get(), board, blue_cards, red_cards, extra_card, -1)
 		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
+
+def single_bvb(l1,l2,window):
+	global sign, board, blue_cards, red_cards, extra_card, bot1_var, bot2_var
+
+	red_strategy = bot1_var.get()
+	blue_strategy = bot2_var.get()
+
+	if sign == -1:
+		i, j, new_i, new_j, x = onitama_bot.getTurn(red_strategy, bot1_depth.get(), board, blue_cards, red_cards, extra_card, -1)
+	else:
+		i, j, new_i, new_j, x = onitama_bot.getTurn(blue_strategy, bot1_depth.get(), board, blue_cards, red_cards, extra_card, 1)
+
+	move_piece(i, j, new_i, new_j, l1, l2, x, window)
+
 
 # Initial setup
 # def game_window(bot):
@@ -419,46 +499,46 @@ def botTakeTurn(l1,l2,window):
 
 	# set_board(window, l1, l2)
 
-def botVbot():
-	window_bvb = Tk()
-	window_bvb.geometry("400x400")
-	window_bvb.title("Onitama BvB")
-	global bot1_var, bot2_var, options_bd
+# def botVbot():
+# 	window_bvb = Tk()
+# 	window_bvb.geometry("400x400")
+# 	window_bvb.title("Onitama BvB")
+# 	global bot1_var, bot2_var, options_bd
 
-	bot1_var = StringVar()
-	bot2_var = StringVar()
+# 	bot1_var = StringVar()
+# 	bot2_var = StringVar()
 
-	b1_label = Label(window_bvb, text="Red Bot:", bg="red")
-	b1_label.grid(row = 1, column=1)
-	bot1_var.set("Random")
-	bot1_drop = OptionMenu(window_bvb, bot1_var, *options_bd)
-	bot1_drop.grid(row = 1, column=2)
+# 	b1_label = Label(window_bvb, text="Red Bot:", bg="red")
+# 	b1_label.grid(row = 1, column=1)
+# 	bot1_var.set("Random")
+# 	bot1_drop = OptionMenu(window_bvb, bot1_var, *options_bd)
+# 	bot1_drop.grid(row = 1, column=2)
 
-	b2_label = Label(window_bvb, text="Blue Bot:", bg="blue")
-	b2_label.grid(row = 2, column=1)
-	bot2_var.set("Random")
-	bot2_drop = OptionMenu(window_bvb, bot2_var, *options_bd)
-	bot2_drop.grid(row = 2, column=2)
+# 	b2_label = Label(window_bvb, text="Blue Bot:", bg="blue")
+# 	b2_label.grid(row = 2, column=1)
+# 	bot2_var.set("Random")
+# 	bot2_drop = OptionMenu(window_bvb, bot2_var, *options_bd)
+# 	bot2_drop.grid(row = 2, column=2)
 
-	global bot1_depth, bot2_depth
-	depth_label = Label(window_bvb, text="Red Bot Depth:")
-	depth_label.grid(row = 1, column=3)
-	bot1_depth = IntVar()
-	bot1_depth.set(4)
-	bot1_depth_drop = OptionMenu(window_bvb, bot1_depth, *depth_options)
-	bot1_depth_drop.grid(row = 1, column=4)
+# 	global bot1_depth, bot2_depth
+# 	depth_label = Label(window_bvb, text="Red Bot Depth:")
+# 	depth_label.grid(row = 1, column=3)
+# 	bot1_depth = IntVar()
+# 	bot1_depth.set(4)
+# 	bot1_depth_drop = OptionMenu(window_bvb, bot1_depth, *depth_options)
+# 	bot1_depth_drop.grid(row = 1, column=4)
 
-	depth2_label = Label(window_bvb, text="Blue Bot Depth:")
-	depth2_label.grid(row = 2, column=3)
-	bot2_depth = IntVar()
-	bot2_depth.set(4)
-	bot2_depth_drop = OptionMenu(window_bvb, bot2_depth, *depth_options)
-	bot2_depth_drop.grid(row = 2, column=4)
+# 	depth2_label = Label(window_bvb, text="Blue Bot Depth:")
+# 	depth2_label.grid(row = 2, column=3)
+# 	bot2_depth = IntVar()
+# 	bot2_depth.set(4)
+# 	bot2_depth_drop = OptionMenu(window_bvb, bot2_depth, *depth_options)
+# 	bot2_depth_drop.grid(row = 2, column=4)
 
-	play_bvb_button = Button(window_bvb ,text="GO", command=play_bvb)
-	play_bvb_button.grid(row=3, column=2)
+# 	play_bvb_button = Button(window_bvb ,text="GO", command=play_bvb)
+# 	play_bvb_button.grid(row=3, column=2)
 
-def play_bvb():
+def play_bvb(window):
 	global sign, board, blue_cards, red_cards, extra_card, bot1_var, bot2_var
 
 	red_strategy = bot1_var.get()
@@ -508,9 +588,14 @@ def play_bvb():
 
 		win_r = check_win()
 		if win_r:
+			set_cards()
+			set_pieces()
 			if win_r == 1: winner = "Blue"
 			else: winner = "Red"
 			print("Game Over", "%s Player won the match." % winner)
+			box = messagebox.showinfo("Game Over", "%s Player won the match." % winner)
+			window.destroy()		
+			play()
 			return
 
 
@@ -560,6 +645,8 @@ def printboard(board):
 		print("|", end="")
 		for j in range(5):
 			if(board[i][j] == " "): print("   ", end=" |")
+			elif (board[i][j] == "BK"): print(" BM", end=" |")
+			elif (board[i][j] == "RK"): print(" RM", end=" |")
 			else: print(" " + board[i][j], end=" |")
 		if i == 2: print(" Extra card: ", extra_card, end="")
 		print()

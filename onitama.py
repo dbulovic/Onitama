@@ -10,16 +10,15 @@ import cards
 import onitama_bot
 
 global turn_counter, date_version
-global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only_bots, bot_diff
+global all_cards, board, red_cards, blue_cards, extra_card, sign, play_bot, only_bots
 global empty, emptyb, available, temple, templeb, bking, bkingb, bpawn, bpawnb, rking, rkingb, rpawn, rpawnb
-global bot1_var, bot2_var, options_bd
-global bot1_depth, bot2_depth, depth_options
+global bot1_var, bot2_var, bot_diff_var, options_bd
+global bot1_depth, bot2_depth, bot_diff_depth, depth_options
 global rcardslabel1, rcardslabel2, bcardslabel1, bcardslabel2, ncardlabel
 
 date_version = "27-Jul-2023"
 depth_options = [1,2,3,4,5]
 options_bd = ["Random", "CountPawns", "CountMoves", "ReachTemple", "Combination"]
-bot_diff = "Random"
 game_mode = "PvP"
 play_bot = False
 only_bots = False
@@ -160,6 +159,7 @@ def endTurn(l1, l2, window):
 	if win_r:
 		if win_r == 1: winner = "Blue"
 		else: winner = "Red"
+		print("Game Over", "%s Player won the match." % winner)
 		box = messagebox.showinfo("Game Over", "%s Player won the match." % winner)
 		window.destroy()		
 		play()
@@ -186,7 +186,7 @@ def setCardButtonsCommands(l1, l2, window):
 # Create the GUI of game board
 def play():
 	global board, buttons, rcard1, rcard2, bcard1, bcard2, ecard, sign, endturn_b, undo_b
-	global blue_cards, red_cards, extra_card, play_bot, bot1_depth, bot2_depth, bot1_var, bot2_var, options_bd
+	global blue_cards, red_cards, extra_card, play_bot, bot1_depth, bot2_depth, bot1_var, bot2_var, options_bd, bot_diff_depth, bot_diff_var
 
 	window = Tk()
 	window.title("Onitama")
@@ -248,9 +248,9 @@ def play():
 	if not play_bot:
 		rcard2.config(command=p_card)
 
-	bcardslabel1 = Label(window, text="Blue card1", bg="blue")
+	bcardslabel1 = Label(window, text="Blue card1", bg="blue", fg="white")
 	bcardslabel1.grid(row=10,column=6)
-	bcardslabel2 = Label(window, text="Blue card2", bg="blue")
+	bcardslabel2 = Label(window, text="Blue card2", bg="blue", fg="white")
 	bcardslabel2.grid(row=10,column=8)
 
 	ncardlabel = Label(window, text="neutral card:\ntmp", bg="gray")
@@ -286,19 +286,19 @@ def play():
 
 	diff_label = Label(window, text="Bot Mode:")
 	diff_label.grid(row = 5, column=19)
-	global bot_diff
+
 	bot_diff_var = StringVar()
-	bot_diff_var.set(bot_diff)
-	resetparbd = partial(restartBD, window)
-	play_bot_drop = OptionMenu(window, bot_diff_var, *options_bd, command=resetparbd)
+	bot_diff_var.set("Random")
+	
+	play_bot_drop = OptionMenu(window, bot_diff_var, *options_bd)
 	play_bot_drop.grid(row = 5, column=20)
 
-	global bot1_depth
+	global bot_diff_depth
 	depth_label = Label(window, text="Bot Depth:")
 	depth_label.grid(row = 5, column=21)
-	bot1_depth = IntVar()
-	bot1_depth.set(4)
-	bot_depth_drop = OptionMenu(window, bot1_depth, *depth_options)
+	bot_diff_depth = IntVar()
+	bot_diff_depth.set(4)
+	bot_depth_drop = OptionMenu(window, bot_diff_depth, *depth_options)
 	bot_depth_drop.grid(row = 5, column=22)
 
 	bot1_var = StringVar()
@@ -358,8 +358,8 @@ def play():
 		bot2_depth_drop.config(state=DISABLED)
 		play_bvb_button.config(state=DISABLED)
 		single_bvb_button.config(state=DISABLED)
-		bcard1.config(command=False)
-		bcard2.config(command=False)
+		rcard1.config(command=False)
+		rcard2.config(command=False)
 		play_bot = True
 	elif game_mode == "BvB":
 		play_bot_drop.config(state=DISABLED)
@@ -389,13 +389,6 @@ def restart(window, pb):
 	game_mode = pb
 	if pb == "PvB": play_bot = True
 	else: play_bot = False
-	play()
-
-def restartBD(window, bd):
-	window.destroy()
-
-	global bot_diff
-	bot_diff = bd
 	play()
 
 def pick_random_cards():
@@ -473,9 +466,10 @@ def check_win():
 	return 0
 
 def botTakeTurn(l1,l2,window):
-	global game_mode
+	global game_mode, bot_diff_var, bot_diff_depth
 	if sign == -1 and game_mode == "PvB":
-		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(bot_diff, bot1_depth.get(), board, blue_cards, red_cards, extra_card, -1)
+		bot_diff = bot_diff_var.get()
+		b_i, b_j, bi_new, bj_new, b_x = onitama_bot.getTurn(bot_diff, bot_diff_depth.get(), board, blue_cards, red_cards, extra_card, -1)
 		move_piece(b_i, b_j, bi_new, bj_new, l1, l2, b_x, window)
 
 def single_bvb(l1,l2,window):
@@ -497,24 +491,24 @@ def play_bvb(window):
 	red_strategy = bot1_var.get()
 	blue_strategy = bot2_var.get()
 
-	# setting up the back-end board:
-	board = [[" " for x in range(5)] for y in range(5)]
-	board[0] = ["RP", "RP", "RK", "RP", "RP"]
-	board[4] = ["BP", "BP", "BK", "BP", "BP"]
+	# # setting up the back-end board:
+	# board = [[" " for x in range(5)] for y in range(5)]
+	# board[0] = ["RP", "RP", "RK", "RP", "RP"]
+	# board[4] = ["BP", "BP", "BK", "BP", "BP"]
 
-	global turn_counter
-	turn_counter = 0
+	# global turn_counter
+	# turn_counter = 0
 
-	pick_random_cards()
+	# pick_random_cards()
 
-	possible_signs = [-1, 1]
-	sign = random.choice(possible_signs)
+	# possible_signs = [-1, 1]
+	# sign = random.choice(possible_signs)
 
-	print("============")
-	print("New BvB Game")
-	print("Red player: ", red_strategy, " || Blue player: ", blue_strategy)
-	print("============")
-	printboard(board)
+	# print("============")
+	# print("New BvB Game")
+	# print("Red player: ", red_strategy, " || Blue player: ", blue_strategy)
+	# print("============")
+	# printboard(board)
 
 	while(True):
 		if sign == -1:

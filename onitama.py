@@ -16,7 +16,9 @@ global bot1_var, bot2_var, bot_diff_var, options_bd
 global bot1_depth, bot2_depth, bot_diff_depth, depth_options
 global rcardslabel1, rcardslabel2, bcardslabel1, bcardslabel2, ncardlabel
 
-date_version = "27-Jul-2023"
+global tips_label
+
+date_version = "29-Aug-2023"
 depth_options = [1,2,3,4,5]
 options_bd = ["Random", "CountPawns", "CountMoves", "ReachTemple", "Combination"]
 game_mode = "PvP"
@@ -29,7 +31,7 @@ all_cards = ["tiger", "elephant", "monkey", "crab", "dragon", "mantis", "ox", "p
 all_pieces = ["empty", "emptyb", "available", "temple", "templeb", "bking", "bkingb", "bpawn", "bpawnb", "rking", "rkingb", "rpawn", "rpawnb"]
 
 def select_card(x, l1, l2, window):
-	global sign, red_cards, blue_cards
+	global sign, red_cards, blue_cards, tips_label
 
 	if (sign == 1 and (x == 2 or x == 3)) or (sign == -1 and (x == 0 or x == 1)):
 		if sign == 1: 
@@ -40,6 +42,7 @@ def select_card(x, l1, l2, window):
 			elif x%2 == 1: 
 				bcard1.config(bd = 2)
 				bcard2.config(bd = 7)
+			tips_label.config(text='Blue Player: select piece')
 		else: 
 			available_moves = cards.getCardMoves(red_cards[x % 2])
 			if x%2 == 0: 
@@ -48,6 +51,7 @@ def select_card(x, l1, l2, window):
 			elif x%2 == 1: 
 				rcard1.config(bd = 2)
 				rcard2.config(bd = 7)
+			tips_label.config(text='Red Player: select piece')
 		for ni in range (5):
 			for nj in range (5):
 				fieldp = partial(field_button, ni, nj, l1, l2, available_moves, x, window)
@@ -63,8 +67,12 @@ def field_button(i, j, l1, l2, moves, x, window):
 			fieldp = partial(field_button, ni, nj, l1, l2, moves, x, window)
 			buttons[ni][nj].config(command=fieldp)
 	set_pieces()
+	if sign == 1: tips_label.config(text='Blue Player: select piece')
+	else: tips_label.config(text='Red Player: select piece')
 
 	if (sign == 1 and (board[i][j] == "BK" or board[i][j] == "BP")) or (sign == -1 and (board[i][j] == "RK" or board[i][j] == "RP")):
+		if sign == 1: tips_label.config(text='Blue Player: select move')
+		else: tips_label.config(text='Red Player: select move')
 		for move in moves:
 			i_new = i+(sign*move[0])
 			j_new = j+(sign*move[1])
@@ -105,6 +113,10 @@ def move_piece(i, j, new_i, new_j, l1, l2, x, window):
 	set_cards()
 	set_pieces()
 
+	if game_mode != "BvB":
+		if sign == 1: tips_label.config(text='Blue Player: select commit turn or undo')
+		else: tips_label.config(text='Red Player: select commit turn or undo')
+
 	if ((sign == -1 and game_mode == "PvB") or game_mode == "BvB"):
 		endTurn(l1, l2, window)
 		return
@@ -143,6 +155,10 @@ def undoTurn(i, j, new_i, new_j, old_field, x, l1,l2,window):
 def endTurn(l1, l2, window):
 	global sign
 	sign *= -1
+
+	if game_mode != "BvB":
+		if sign == 1: tips_label.config(text='Blue Player: select card')
+		else: tips_label.config(text='Red Player: select card')
 
 	printboard(board)
 
@@ -194,7 +210,7 @@ def play():
 	possible_signs = [-1, 1]
 	sign = random.choice(possible_signs)
 
-	l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray')
+	l1 = Button(window, text = "Player 1 : Blue", width = 10, bg='gray', fg='white')
 	
 	l1.grid(row = 1, column = 1, columnspan=2)
 	l2 = Button(window, text = "Player 2 : Red", width = 10, bg='gray')
@@ -219,6 +235,7 @@ def play():
 	# initialize images for cards
 	for card in all_cards:
 		exec('global %s; %s = PhotoImage(file = r"imgs/%s.png")' % (card, card, card))
+		exec('global %s_rot; %s_rot = PhotoImage(file = r"imgs/%s_rot.png")' % (card, card, card))
 
 	buttons = []
 	for i in range(5):
@@ -267,7 +284,7 @@ def play():
 	ecard = Button(window, image=empty, height=128, width=128)
 	ecard.grid(row=7, column=12, rowspan=2, columnspan=2)
 
-	endturn_b = Button(window, text="Commit Turn", bg='gray')
+	endturn_b = Button(window, text="Commit Turn", bg='gray', fg='white')
 	endturn_b.grid(row=7, column=14)
 	undo_b = Button(window, text="UNDO", bg='gray')
 	undo_b.grid(row=7, column=16)
@@ -288,7 +305,7 @@ def play():
 	diff_label.grid(row = 5, column=19)
 
 	bot_diff_var = StringVar()
-	bot_diff_var.set("Random")
+	bot_diff_var.set("Combination")
 	
 	play_bot_drop = OptionMenu(window, bot_diff_var, *options_bd)
 	play_bot_drop.grid(row = 5, column=20)
@@ -306,13 +323,13 @@ def play():
 
 	b1_label = Label(window, text="Red Bot:", bg="red")
 	b1_label.grid(row = 6, column=17)
-	bot1_var.set("Random")
+	bot1_var.set("Combination")
 	bot1_drop = OptionMenu(window, bot1_var, *options_bd)
 	bot1_drop.grid(row = 6, column=18)
 
-	b2_label = Label(window, text="Blue Bot:", bg="blue")
+	b2_label = Label(window, text="Blue Bot:", bg="blue", fg='white')
 	b2_label.grid(row = 7, column=17)
-	bot2_var.set("Random")
+	bot2_var.set("Combination")
 	bot2_drop = OptionMenu(window, bot2_var, *options_bd)
 	bot2_drop.grid(row = 7, column=18)
 
@@ -340,6 +357,13 @@ def play():
 
 	help_button = Button(window, text="?", command=helpButton, bg='yellow')
 	help_button.grid(row=1, column=22)
+
+	if game_mode != "BvB":
+		global tips_label
+		tips_label = Label(window, text='initial', bg='yellow')
+		tips_label.grid(row=1, column=6, columnspan=3)
+		if sign == 1: tips_label.config(text='Blue Player: select card')
+		else: tips_label.config(text='Red Player: select card')
 
 	if game_mode == "PvP":
 		play_bot_drop.config(state=DISABLED)
@@ -411,8 +435,8 @@ def set_cards():
 	global red_cards, blue_cards, extra_card
 	global rcardslabel1, rcardslabel2, bcardslabel1, bcardslabel2, ncardlabel
 	
-	exec("rcard1.config(image=%s, bd = 2)" % red_cards[0])
-	exec("rcard2.config(image=%s, bd = 2)" % red_cards[1])
+	exec("rcard1.config(image=%s_rot, bd = 2)" % red_cards[0])
+	exec("rcard2.config(image=%s_rot, bd = 2)" % red_cards[1])
 	exec("bcard1.config(image=%s, bd = 2)" % blue_cards[0])
 	exec("bcard2.config(image=%s, bd = 2)" % blue_cards[1])
 	exec("ecard.config(image=%s)" % extra_card)

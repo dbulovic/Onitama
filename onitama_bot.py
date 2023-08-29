@@ -70,7 +70,7 @@ def getTurn(evaluation_function, depth, board, blue_cards, red_cards, common_car
 	if evaluation_function == "Random":
 		return getRandomTurn(root)
 	else:
-		alpha_beta_pruning(root, depth, -1000, +1000, maximizer, evaluation_function)		
+		alpha_beta_pruning(root, depth, -10000, +10000, maximizer, evaluation_function)		
 	
 	for child in root.children:
 		if child.value == root.value:
